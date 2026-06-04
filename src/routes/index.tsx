@@ -69,6 +69,23 @@ function Reveal({
   );
 }
 
+/* ---------------- Scroll-visible hook ---------------- */
+function useScrollVisible(threshold = 0.06) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return [ref, visible] as const;
+}
+
 /* ---------------- Nav ---------------- */
 function Nav({ go, scrolled }: { go: (id: string) => void; scrolled: boolean }) {
   const { lang, setLang } = useLang();
@@ -86,7 +103,7 @@ function Nav({ go, scrolled }: { go: (id: string) => void; scrolled: boolean }) 
             <img
               src={oasisLogo}
               alt="Oasis Studio"
-              className="h-7 md:h-8 w-auto"
+              className={`h-7 md:h-8 w-auto transition-all duration-500 ${scrolled ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1 pointer-events-none"}`}
               style={{ filter: "invert(1) brightness(1.4)" }}
             />
           </button>
@@ -262,6 +279,25 @@ function useCountUp(target: number, duration = 1100, delay = 0) {
     }, delay * 1000);
     return () => { clearTimeout(tid); cancelAnimationFrame(raf); };
   }, [target, duration, delay]);
+  return value;
+}
+
+function useCountWhen(target: number, duration: number, enabled: boolean) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    let raf = 0;
+    let start: number | null = null;
+    const tick = (ts: number) => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      setValue((1 - (1 - p) ** 3) * target);
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else setValue(target);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [enabled]);
   return value;
 }
 
@@ -649,38 +685,62 @@ function Services() {
     { n: "03", title: t(lang, "Editorial Direction", "Dirección Editorial"), body: t(lang, "Sustained content systems. Voice, rhythm, and narrative. No one-off campaigns.", "Sistemas de contenido sostenidos. Voz, ritmo y narrativa. Sin campañas aisladas."), tags: ["Voice", "Systems", "Cadence"] },
     { n: "04", title: t(lang, "Digital Infrastructure", "Infraestructura Digital"), body: t(lang, "The technical base that supports all of the above. Stable, measurable, proprietary.", "La base técnica que sostiene todo lo anterior. Estable, medible, propia."), tags: ["Cloud", "Pipelines", "Observability"] },
   ];
+  const [svcRef, svcVisible] = useScrollVisible(0.06);
   return (
     <section id="services" className="snap-section relative">
-      <div className="mx-auto max-w-6xl px-6 w-full">
-        <Reveal><SectionLabel>{t(lang, "What we do", "Qué hacemos")}</SectionLabel></Reveal>
-        <Reveal delay={1}>
-          <h2 className="font-display text-3xl md:text-5xl leading-[1.05] tracking-tight max-w-3xl text-balance">
-            {t(lang, "Four fronts. One ", "Cuatro frentes. Un ")}
-            <em className="text-accent">{t(lang, "measurable", "sistema")}</em>
-            {t(lang, " system.", " medible.")}
-          </h2>
-        </Reveal>
-        <Reveal delay={2} className="mt-4 max-w-xl text-muted-foreground text-base md:text-lg">
+      <div ref={svcRef} className="mx-auto max-w-6xl px-6 w-full">
+        {/* Heading fades up */}
+        <div style={{ opacity: svcVisible ? 1 : 0, transform: svcVisible ? "translateY(0)" : "translateY(14px)", transition: "opacity 0.5s ease 0.05s, transform 0.5s ease 0.05s" }}>
+          <SectionLabel>{t(lang, "What we do", "Qué hacemos")}</SectionLabel>
+        </div>
+        <h2
+          style={{ opacity: svcVisible ? 1 : 0, transform: svcVisible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.75s cubic-bezier(0.2,0.8,0.2,1) 0.1s, transform 0.75s cubic-bezier(0.2,0.8,0.2,1) 0.1s" }}
+          className="font-display text-3xl md:text-5xl leading-[1.05] tracking-tight max-w-3xl text-balance"
+        >
+          {t(lang, "Four fronts. One ", "Cuatro frentes. Un ")}
+          <em className="text-accent">{t(lang, "measurable", "sistema")}</em>
+          {t(lang, " system.", " medible.")}
+        </h2>
+        <p style={{ opacity: svcVisible ? 1 : 0, transform: svcVisible ? "translateY(0)" : "translateY(16px)", transition: "opacity 0.65s ease 0.2s, transform 0.65s ease 0.2s" }}
+          className="mt-4 max-w-xl text-muted-foreground text-base md:text-lg">
           {t(lang, "We don't offer standalone services — we offer the discernment that makes them function as a single piece.", "No ofrecemos servicios sueltos — ofrecemos el criterio que los hace funcionar como una sola pieza.")}
-        </Reveal>
+        </p>
+
+        {/* Cards: even slides from left, odd slides from right */}
         <div className="mt-8 md:mt-10 grid md:grid-cols-2 gap-3 md:gap-4">
-          {items.map((it, i) => (
-            <Reveal key={it.n} delay={((i % 4) + 1) as 1 | 2 | 3 | 4}>
-              <article className="glass hover-lift rounded-2xl p-5 md:p-6 group h-full">
+          {items.map((it, i) => {
+            const fromLeft = i % 2 === 0;
+            const delay = 0.28 + i * 0.1;
+            return (
+              <article
+                key={it.n}
+                style={{
+                  opacity: svcVisible ? 1 : 0,
+                  transform: svcVisible ? "translateX(0) translateY(0)" : `translateX(${fromLeft ? "-32px" : "32px"}) translateY(16px)`,
+                  transition: `opacity 0.75s cubic-bezier(0.2,0.8,0.2,1) ${delay}s, transform 0.75s cubic-bezier(0.2,0.8,0.2,1) ${delay}s`,
+                }}
+                className="glass hover-lift rounded-2xl p-5 md:p-6 group h-full"
+              >
                 <div className="flex items-start justify-between mb-6">
-                  <span className="font-mono text-xs text-muted-foreground">{it.n}</span>
+                  <span
+                    className="font-mono text-xs text-muted-foreground"
+                    style={{
+                      transform: svcVisible ? "scale(1)" : "scale(0.6)",
+                      transition: `transform 0.5s cubic-bezier(0.34,1.56,0.64,1) ${delay + 0.12}s`,
+                    }}
+                  >{it.n}</span>
                   <span className="size-8 rounded-full glass-subtle flex items-center justify-center text-muted-foreground group-hover:text-accent transition-colors">→</span>
                 </div>
                 <h3 className="font-display text-2xl md:text-3xl mb-2">{it.title}</h3>
                 <p className="text-muted-foreground text-sm md:text-base text-pretty mb-4">{it.body}</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {it.tags.map((t) => (
-                    <span key={t} className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded-full glass-subtle text-muted-foreground">{t}</span>
+                  {it.tags.map((tag) => (
+                    <span key={tag} className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded-full glass-subtle text-muted-foreground">{tag}</span>
                   ))}
                 </div>
               </article>
-            </Reveal>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -698,29 +758,60 @@ function Work() {
     { name: "Ishin Academy", tag: "Education · Framer", url: "ishinacademy.framer.website", href: "https://ishinacademy.framer.website/", img: `${base}assets/5.png` },
     { name: "Aurélia", tag: "Beauty · Branding · Web", url: "aureliaesthetics.lovable.app", href: "https://aureliaesthetics.lovable.app/", img: `${base}assets/6.png` },
   ];
+  const [workRef, workVisible] = useScrollVisible(0.06);
   return (
     <section id="work" className="snap-section relative">
-      <div className="mx-auto max-w-6xl px-6 w-full">
-        <Reveal><SectionLabel>{t(lang, "Selected work", "Trabajo seleccionado")}</SectionLabel></Reveal>
-        <Reveal delay={1}>
-          <h2 className="font-display text-3xl md:text-5xl tracking-tight max-w-3xl">
-            {t(lang, "Built for the ", "Hecho para los ")}
-            <em className="text-accent">{t(lang, "bold.", "audaces.")}</em>
-          </h2>
-        </Reveal>
+      <div ref={workRef} className="mx-auto max-w-6xl px-6 w-full">
+        <div style={{ opacity: workVisible ? 1 : 0, transform: workVisible ? "translateY(0)" : "translateY(14px)", transition: "opacity 0.5s ease 0.05s, transform 0.5s ease 0.05s" }}>
+          <SectionLabel>{t(lang, "Selected work", "Trabajo seleccionado")}</SectionLabel>
+        </div>
+        <h2
+          style={{ opacity: workVisible ? 1 : 0, transform: workVisible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.75s cubic-bezier(0.2,0.8,0.2,1) 0.1s, transform 0.75s cubic-bezier(0.2,0.8,0.2,1) 0.1s" }}
+          className="font-display text-3xl md:text-5xl tracking-tight max-w-3xl"
+        >
+          {t(lang, "Built for the ", "Hecho para los ")}
+          <em className="text-accent">{t(lang, "bold.", "audaces.")}</em>
+        </h2>
+
+        {/* Cards: scale-up from below with stagger, image un-blurs */}
         <div className="mt-8 md:mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          {projects.map((p, i) => (
-            <Reveal key={p.name} delay={((i % 4) + 1) as 1 | 2 | 3 | 4}>
-              <a href={p.href} target="_blank" rel="noopener noreferrer" className="glass hover-lift rounded-2xl overflow-hidden group block">
+          {projects.map((p, i) => {
+            const delay = 0.22 + i * 0.09;
+            return (
+              <a
+                key={p.name}
+                href={p.href} target="_blank" rel="noopener noreferrer"
+                style={{
+                  opacity: workVisible ? 1 : 0,
+                  transform: workVisible ? "scale(1) translateY(0)" : "scale(0.93) translateY(20px)",
+                  transition: `opacity 0.7s cubic-bezier(0.2,0.8,0.2,1) ${delay}s, transform 0.7s cubic-bezier(0.2,0.8,0.2,1) ${delay}s`,
+                }}
+                className="glass hover-lift rounded-2xl overflow-hidden group block"
+              >
                 <div className="relative border-b border-white/10">
+                  {/* Browser chrome dots pop in with spring, sequential */}
                   <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/10 bg-white/[0.03]">
-                    <span className="size-2 rounded-full bg-white/20" />
-                    <span className="size-2 rounded-full bg-white/20" />
-                    <span className="size-2 rounded-full bg-white/20" />
+                    {[0,1,2].map((j) => (
+                      <span
+                        key={j}
+                        className="size-2 rounded-full bg-white/20"
+                        style={{
+                          transform: workVisible ? "scale(1)" : "scale(0)",
+                          transition: `transform 0.35s cubic-bezier(0.34,1.56,0.64,1) ${delay + 0.12 + j * 0.06}s`,
+                        }}
+                      />
+                    ))}
                     <span className="ml-2 text-[10px] font-mono text-muted-foreground truncate">{p.url}</span>
                   </div>
                   <div className="aspect-[16/10] relative overflow-hidden bg-black/30">
-                    <img src={p.img} alt={`${p.name} preview`} loading="lazy" className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.04]" />
+                    <img
+                      src={p.img} alt={`${p.name} preview`} loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-[1.04]"
+                      style={{
+                        filter: workVisible ? "blur(0px) brightness(1)" : "blur(6px) brightness(0.7)",
+                        transition: `filter 0.9s ease ${delay + 0.1}s, transform 0.7s cubic-bezier(0.2,0.8,0.2,1)`,
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="p-4 flex items-center justify-between">
@@ -731,8 +822,8 @@ function Work() {
                   <span className="size-8 rounded-full glass-subtle flex items-center justify-center text-muted-foreground group-hover:text-accent transition-colors">↗</span>
                 </div>
               </a>
-            </Reveal>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -756,40 +847,94 @@ function FAQ() {
         { q: "¿Cómo medimos que está funcionando?", a: "Definimos métricas claras desde el inicio según tus objetivos: ventas, citas agendadas, alcance, seguidores o tráfico web. Recibes reportes periódicos en lenguaje simple, sin tecnicismos." },
       ];
   const [open, setOpen] = useState<number | null>(0);
+  const [listRef, listVisible] = useScrollVisible(0.05);
   return (
     <section id="faq" className="snap-section relative">
       <div className="mx-auto max-w-6xl px-6 w-full">
-        <div className="flex items-baseline justify-between">
-          <Reveal><SectionLabel>{t(lang, "Frequent conversations", "Conversaciones frecuentes")}</SectionLabel></Reveal>
-          <Reveal className="hidden md:block text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+        {/* Heading — slides up on scroll */}
+        <div
+          ref={listRef}
+          style={{
+            opacity: listVisible ? 1 : 0,
+            transform: listVisible ? "translateY(0)" : "translateY(18px)",
+            transition: "opacity 0.55s ease 0.04s, transform 0.55s cubic-bezier(0.2,0.8,0.2,1) 0.04s",
+          }}
+          className="flex items-baseline justify-between"
+        >
+          <SectionLabel>{t(lang, "Frequent conversations", "Conversaciones frecuentes")}</SectionLabel>
+          <span className="hidden md:block text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
             {t(lang, "What people usually ask us", "Lo que suelen preguntarnos")}
-          </Reveal>
+          </span>
         </div>
-        <Reveal delay={1}>
-          <h2 className="font-display text-3xl md:text-5xl tracking-tight max-w-2xl text-balance">
-            {t(lang, "Direct answers, no ", "Respuestas directas, sin ")}
-            <em className="text-accent">{t(lang, "detours.", "rodeos.")}</em>
-          </h2>
-        </Reveal>
+        <h2
+          style={{
+            opacity: listVisible ? 1 : 0,
+            transform: listVisible ? "translateY(0)" : "translateY(22px)",
+            transition: "opacity 0.75s cubic-bezier(0.2,0.8,0.2,1) 0.1s, transform 0.75s cubic-bezier(0.2,0.8,0.2,1) 0.1s",
+          }}
+          className="font-display text-3xl md:text-5xl tracking-tight max-w-2xl text-balance"
+        >
+          {t(lang, "Direct answers, no ", "Respuestas directas, sin ")}
+          <em className="text-accent">{t(lang, "detours.", "rodeos.")}</em>
+        </h2>
+
+        {/* FAQ rows — each slides in from left, staggered */}
         <div className="mt-10 border-t border-white/10">
           {faqs.map((f, i) => {
             const isOpen = open === i;
+            const rowDelay = 0.18 + i * 0.1;
             return (
-              <Reveal key={f.q} delay={((i % 4) + 1) as 1 | 2 | 3 | 4}>
-                <div className="border-b border-white/10">
-                  <button
-                    onClick={() => setOpen(isOpen ? null : i)}
-                    className="w-full grid grid-cols-12 gap-3 md:gap-6 py-5 md:py-7 text-left items-start"
+              <div
+                key={f.q}
+                style={{
+                  opacity: listVisible ? 1 : 0,
+                  transform: listVisible ? "translateX(0)" : "translateX(-28px)",
+                  transition: `opacity 0.7s cubic-bezier(0.2,0.8,0.2,1) ${rowDelay}s, transform 0.7s cubic-bezier(0.2,0.8,0.2,1) ${rowDelay}s`,
+                }}
+                className={`border-b border-white/10 transition-colors duration-300 ${isOpen ? "bg-white/[0.015]" : ""}`}
+              >
+                <button
+                  onClick={() => setOpen(isOpen ? null : i)}
+                  className="w-full flex items-start gap-5 md:gap-8 py-6 md:py-8 text-left group"
+                >
+                  {/* Large accent number — scales up slightly behind the row */}
+                  <span
+                    className={`font-display text-5xl md:text-6xl leading-none shrink-0 w-14 md:w-20 select-none transition-all duration-500 ${
+                      isOpen ? "text-gradient-accent" : "text-foreground/[0.08] group-hover:text-foreground/[0.16]"
+                    }`}
+                    style={{
+                      transform: listVisible ? "scale(1)" : "scale(0.75)",
+                      transition: `transform 0.6s cubic-bezier(0.2,0.8,0.2,1) ${rowDelay + 0.05}s, color 0.5s, -webkit-text-fill-color 0.5s`,
+                    }}
                   >
-                    <span className="col-span-2 md:col-span-1 font-mono text-[10px] text-muted-foreground pt-1">0{i + 1}</span>
-                    <span className="col-span-10 md:col-span-5 font-display text-lg md:text-2xl text-foreground">{f.q}</span>
-                    <span className={`col-span-12 md:col-span-5 text-sm md:text-base text-muted-foreground overflow-hidden transition-all duration-500 ${isOpen ? "max-h-40 opacity-100" : "max-h-0 md:max-h-40 opacity-0 md:opacity-100"}`}>
-                      {f.a}
-                    </span>
-                    <span className="hidden md:flex col-span-1 justify-end pt-1 text-muted-foreground">{isOpen ? "−" : "+"}</span>
-                  </button>
-                </div>
-              </Reveal>
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+
+                  <div className="flex-1 min-w-0 pt-1.5">
+                    <div className="font-display text-xl md:text-2xl text-foreground leading-snug">{f.q}</div>
+                    <div className={`overflow-hidden transition-all duration-500 ${isOpen ? "max-h-40 mt-4 opacity-100" : "max-h-0 opacity-0"}`}>
+                      <p
+                        key={isOpen ? `open-${i}` : `closed-${i}`}
+                        className={`text-sm md:text-base text-muted-foreground leading-relaxed ${isOpen ? "animate-panel-in" : ""}`}
+                      >
+                        {f.a}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Rotating toggle */}
+                  <span
+                    className={`shrink-0 mt-2 size-7 rounded-full border flex items-center justify-center text-base font-light transition-colors duration-300 ${
+                      isOpen
+                        ? "text-accent bg-accent/10 border-accent/30"
+                        : "glass-subtle text-muted-foreground border-white/[0.07] group-hover:text-foreground"
+                    }`}
+                    style={{ transform: isOpen ? "rotate(45deg)" : "rotate(0deg)", transition: "transform 0.35s cubic-bezier(0.2,0.8,0.2,1), color 0.3s, background 0.3s, border-color 0.3s" }}
+                  >
+                    +
+                  </span>
+                </button>
+              </div>
             );
           })}
         </div>
@@ -812,43 +957,150 @@ function DiscoveryCTA() {
         { n: "Paso 02", t: "Propuesta a medida", b: "Alcance, equipo y retainer. En 5 días hábiles." },
         { n: "Paso 03", t: "Kickoff", b: "Onboarding en 7 días. Mes 01 comienza." },
       ];
+  const [sectionRef, sectionVisible] = useScrollVisible(0.05);
   return (
     <section id="contact" className="snap-section relative">
-      <div className="mx-auto max-w-6xl px-6 w-full">
-        <div className="flex items-baseline justify-between">
-          <Reveal><SectionLabel>{t(lang, "Next steps", "Próximos pasos")}</SectionLabel></Reveal>
-          <Reveal className="text-[10px] font-mono uppercase tracking-[0.25em] text-accent">
+      <div ref={sectionRef} className="mx-auto max-w-6xl px-6 w-full">
+
+        {/* Label + spots — slides up first */}
+        <div
+          style={{
+            opacity: sectionVisible ? 1 : 0,
+            transform: sectionVisible ? "translateY(0)" : "translateY(14px)",
+            transition: "opacity 0.5s ease 0.04s, transform 0.5s cubic-bezier(0.2,0.8,0.2,1) 0.04s",
+          }}
+          className="flex items-baseline justify-between"
+        >
+          <SectionLabel>{t(lang, "Next steps", "Próximos pasos")}</SectionLabel>
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-accent">
             {t(lang, "2 spots · Q3 2026 cohort", "2 cupos · Cohorte Q3 2026")}
-          </Reveal>
+          </span>
         </div>
-        <Reveal delay={1}>
-          <h2 className="font-display text-4xl md:text-7xl leading-[1] tracking-tight max-w-4xl text-balance">
-            {t(lang, "Every partnership begins with a ", "Toda relación comienza con una ")}
-            <em className="text-accent">{t(lang, "decision.", "decisión.")}</em>
-          </h2>
-        </Reveal>
-        <div className="mt-10 grid md:grid-cols-3 gap-3 md:gap-4 border-t border-white/10 pt-6">
-          {steps.map((s, i) => (
-            <Reveal key={s.n} delay={((i % 4) + 1) as 1 | 2 | 3 | 4}>
-              <div className="glass rounded-xl p-5 md:p-6 h-full hover-lift">
-                <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-accent">{s.n}</div>
-                <div className="font-display text-2xl mt-3">{s.t}</div>
-                <p className="text-muted-foreground text-sm mt-2">{s.b}</p>
+
+        {/* Heading — dramatic fade+rise */}
+        <h2
+          style={{
+            opacity: sectionVisible ? 1 : 0,
+            transform: sectionVisible ? "translateY(0)" : "translateY(28px)",
+            transition: "opacity 0.85s cubic-bezier(0.2,0.8,0.2,1) 0.1s, transform 0.85s cubic-bezier(0.2,0.8,0.2,1) 0.1s",
+          }}
+          className="font-display text-4xl md:text-7xl leading-[1] tracking-tight max-w-4xl text-balance"
+        >
+          {t(lang, "Every partnership begins with a ", "Toda relación comienza con una ")}
+          <em className="text-accent">{t(lang, "decision.", "decisión.")}</em>
+        </h2>
+
+        {/* Chrome container — scales in from slightly below */}
+        <div
+          style={{
+            opacity: sectionVisible ? 1 : 0,
+            transform: sectionVisible ? "translateY(0) scale(1)" : "translateY(24px) scale(0.97)",
+            transition: "opacity 0.75s cubic-bezier(0.2,0.8,0.2,1) 0.22s, transform 0.75s cubic-bezier(0.2,0.8,0.2,1) 0.22s",
+          }}
+          className="mt-10 glass-strong rounded-2xl overflow-hidden"
+        >
+          {/* Chrome header */}
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-white/[0.02]">
+            <div className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-white/15" />
+              <span className="size-2.5 rounded-full bg-white/15" />
+              <span className="size-2.5 rounded-full bg-white/15" />
+            </div>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              oasis · onboarding · process
+            </span>
+            <span className="flex items-center gap-1.5 text-[10px] text-accent">
+              <span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent)] animate-pulse" />
+              {t(lang, "2 spots open", "2 cupos disponibles")}
+            </span>
+          </div>
+
+          <div className="p-4 md:p-6">
+            {/* Animated timeline row (desktop only) */}
+            <div className="hidden md:block relative mb-5 h-4">
+              {/* Line draws left → right */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: 0,
+                  right: 0,
+                  height: "1px",
+                  marginTop: "-0.5px",
+                  transformOrigin: "left center",
+                  transform: sectionVisible ? "scaleX(1)" : "scaleX(0)",
+                  transition: "transform 0.95s cubic-bezier(0.4,0,0.2,1) 0.5s",
+                  background: "linear-gradient(90deg, transparent 4%, oklch(0.78 0.09 65 / 0.45) 14%, oklch(0.78 0.09 65 / 0.6) 50%, oklch(0.78 0.09 65 / 0.45) 86%, transparent 96%)",
+                }}
+              />
+              {/* Dots pop in with spring, sequentially */}
+              <div className="grid grid-cols-3 gap-4 h-full">
+                {[0, 1, 2].map((j) => (
+                  <div key={j} className="flex items-center justify-center">
+                    <span
+                      style={{
+                        display: "block",
+                        width: "10px",
+                        height: "10px",
+                        borderRadius: "50%",
+                        background: "var(--color-accent)",
+                        boxShadow: "0 0 10px var(--color-accent)",
+                        position: "relative",
+                        zIndex: 10,
+                        transform: sectionVisible ? "scale(1)" : "scale(0)",
+                        transition: `transform 0.5s cubic-bezier(0.34,1.56,0.64,1) ${0.6 + j * 0.13}s`,
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
-            </Reveal>
-          ))}
+            </div>
+
+            {/* Step cards — slot up sequentially */}
+            <div className="grid md:grid-cols-3 gap-3 md:gap-4">
+              {steps.map((s, i) => (
+                <div
+                  key={s.n}
+                  style={{
+                    opacity: sectionVisible ? 1 : 0,
+                    transform: sectionVisible ? "translateY(0)" : "translateY(28px)",
+                    transition: `opacity 0.65s cubic-bezier(0.2,0.8,0.2,1) ${0.55 + i * 0.13}s, transform 0.65s cubic-bezier(0.2,0.8,0.2,1) ${0.55 + i * 0.13}s`,
+                  }}
+                  className="glass rounded-xl p-5 md:p-6 h-full hover-lift group"
+                >
+                  <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-accent">{s.n}</div>
+                  <div className="font-display text-2xl mt-3 group-hover:text-gradient-accent transition-all duration-300">{s.t}</div>
+                  <p className="text-muted-foreground text-sm mt-2 leading-relaxed">{s.b}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <Reveal delay={2} className="mt-8 flex flex-wrap items-center gap-4">
+
+        {/* CTA — fades in last */}
+        <div
+          style={{
+            opacity: sectionVisible ? 1 : 0,
+            transform: sectionVisible ? "translateY(0)" : "translateY(14px)",
+            transition: "opacity 0.65s ease 0.9s, transform 0.65s cubic-bezier(0.2,0.8,0.2,1) 0.9s",
+          }}
+          className="mt-8 flex flex-wrap items-center gap-4"
+        >
           <a
             href="mailto:hello@oasisstudio.co"
-            className="rounded-md border border-accent/60 text-accent px-6 py-3.5 text-xs font-mono uppercase tracking-[0.22em] hover:bg-accent/10 transition-colors"
+            className="relative overflow-hidden rounded-md border border-accent/60 text-accent px-6 py-3.5 text-xs font-mono uppercase tracking-[0.22em] hover:bg-accent/10 transition-all group"
+            style={{ boxShadow: "0 0 30px -8px oklch(0.78 0.09 65 / 0.35)" }}
           >
-            {t(lang, "Book a Discovery Call", "Reservar Discovery Call")}
+            <span className="relative z-10">{t(lang, "Book a Discovery Call", "Reservar Discovery Call")}</span>
+            <span
+              className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+              style={{ background: "linear-gradient(90deg, transparent, oklch(0.78 0.09 65 / 0.12), transparent)" }}
+            />
           </a>
           <a href="mailto:hello@oasisstudio.co" className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground transition-colors">
             hello@oasisstudio.co
           </a>
-        </Reveal>
+        </div>
       </div>
     </section>
   );
@@ -957,21 +1209,13 @@ function SectionLabel({ children, center }: { children: React.ReactNode; center?
 /* ---------------- Metrics ---------------- */
 function Metrics() {
   const { lang } = useLang();
+  const [sectionRef, sectionVisible] = useScrollVisible(0.04);
 
-  const tilt = (e: React.MouseEvent<HTMLDivElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5;
-    const y = (e.clientY - r.top) / r.height - 0.5;
-    e.currentTarget.style.transform = `perspective(600px) rotateY(${x * 14}deg) rotateX(${-y * 10}deg) translateZ(6px)`;
-  };
-  const resetTilt = (e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = ""; };
-
-  const stats = [
-    { v: "38.2M", l: t(lang, "Cumulative views", "Vistas acumuladas"), sub: t(lang, "All active channels", "Todos los canales") },
-    { v: "253K+", l: t(lang, "Community built", "Comunidad construida"), sub: "Miami Diario" },
-    { v: "6×", l: t(lang, "Reach multiplier", "Multiplicador de alcance"), sub: "Kimona · Mar–May 2026" },
-    { v: "0→1", l: t(lang, "Brand from zero", "Marca desde cero"), sub: t(lang, "Aurélia · naming to live", "Aurélia · de naming a live") },
-  ];
+  const mainCount    = useCountWhen(38.2, 2600, sectionVisible);
+  const communityCount = useCountWhen(253, 2100, sectionVisible);
+  const growthCount  = useCountWhen(95,  1900, sectionVisible);
+  const peakCount    = useCountWhen(7.9, 2300, sectionVisible);
+  const multiCount   = useCountWhen(6,   1500, sectionVisible);
 
   const marqueeItems = [
     "38.2M views", "253K+ community", "6× reach growth", "0→1 brand built",
@@ -979,85 +1223,176 @@ function Metrics() {
     "253K+ community", "6× reach growth", "0→1 brand built", "3 active partnerships",
   ];
 
-  const chartBars = [
-    { l: "Jan", v: 18 }, { l: "Feb", v: 22 },
-    { l: "Mar", v: 38 }, { l: "Apr", v: 55 }, { l: "May", v: 100 },
-  ];
-
   return (
     <section id="metrics" className="snap-section relative overflow-hidden">
-      {/* ambient glows */}
+      {/* Deep ambient orbs — activate on scroll */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/4 top-1/3 h-96 w-96 rounded-full bg-accent/10 blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 h-64 w-64 rounded-full blur-[80px]" style={{ background: "oklch(0.78 0.09 65 / 0.07)" }} />
+        <div
+          className="absolute rounded-full blur-[130px]"
+          style={{
+            width: "55%", height: "80%", left: "22%", top: "10%",
+            background: "radial-gradient(ellipse, oklch(0.78 0.09 65 / 0.18) 0%, transparent 70%)",
+            opacity: sectionVisible ? 1 : 0,
+            transition: "opacity 1.8s ease 0.3s",
+          }}
+        />
+        <div
+          className="absolute rounded-full blur-[80px]"
+          style={{
+            width: "25%", height: "40%", right: "8%", bottom: "15%",
+            background: "radial-gradient(ellipse, oklch(0.78 0.09 65 / 0.09) 0%, transparent 70%)",
+            opacity: sectionVisible ? 1 : 0,
+            transition: "opacity 1.5s ease 0.8s",
+          }}
+        />
       </div>
 
-      {/* marquee ticker */}
-      <div className="overflow-hidden border-b border-white/[0.06] mb-8">
+      {/* Marquee ticker */}
+      <div className="overflow-hidden border-b border-white/[0.06]">
         <div className="flex animate-marquee whitespace-nowrap py-2.5 gap-10">
           {marqueeItems.map((m, i) => (
             <span key={i} className="inline-flex items-center gap-2.5 text-[10px] font-mono uppercase tracking-[0.28em] text-accent/50 shrink-0">
-              <span className="size-1 rounded-full bg-accent/40" />
-              {m}
+              <span className="size-1 rounded-full bg-accent/40" />{m}
             </span>
           ))}
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 w-full relative">
-        <Reveal>
-          <SectionLabel>{t(lang, "Measured impact", "Impacto medido")}</SectionLabel>
-          <h2 className="font-display text-4xl md:text-6xl tracking-tight leading-[1]">
-            {t(lang, "Numbers that ", "Números que ")}
-            <em className="text-gradient-accent">{t(lang, "speak.", "hablan.")}</em>
-          </h2>
-        </Reveal>
+      <div ref={sectionRef} className="mx-auto max-w-6xl px-6 w-full relative flex flex-col gap-5 justify-center py-4">
 
-        {/* 4 stat cards with 3D tilt */}
-        <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {stats.map((s, i) => (
-            <Reveal key={s.v} delay={((i % 4) + 1) as 1 | 2 | 3 | 4}>
-              <div
-                className="tilt-card glass rounded-2xl p-5 md:p-7 flex flex-col gap-1 h-full cursor-default select-none"
-                onMouseMove={tilt} onMouseLeave={resetTilt}
-              >
-                <div className="font-display text-[2.6rem] md:text-[3.4rem] leading-none text-gradient-accent">{s.v}</div>
-                <div className="text-sm font-medium text-foreground/90 mt-2">{s.l}</div>
-                <div className="text-[11px] text-muted-foreground">{s.sub}</div>
-              </div>
-            </Reveal>
+        {/* Section label */}
+        <div style={{ opacity: sectionVisible ? 1 : 0, transform: sectionVisible ? "translateY(0)" : "translateY(12px)", transition: "opacity 0.5s ease 0.08s, transform 0.5s ease 0.08s" }}>
+          <SectionLabel center>{t(lang, "Measured impact", "Impacto medido")}</SectionLabel>
+        </div>
+
+        {/* ── HERO NUMBER ── */}
+        <div className="text-center relative select-none">
+          {/* Glow halo behind number */}
+          <div
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none rounded-full"
+            style={{
+              width: "420px", height: "180px",
+              background: "radial-gradient(ellipse, oklch(0.78 0.09 65 / 0.28) 0%, transparent 70%)",
+              filter: "blur(32px)",
+              opacity: sectionVisible ? 1 : 0,
+              transition: "opacity 1.2s ease 0.6s",
+            }}
+          />
+
+          {/* Number + scanner line */}
+          <div className="relative inline-block overflow-hidden">
+            <h2
+              className="font-display text-gradient-accent leading-none"
+              style={{
+                fontSize: "clamp(5.5rem, 17vw, 14rem)",
+                opacity: sectionVisible ? 1 : 0,
+                transform: sectionVisible ? "translateY(0) scale(1)" : "translateY(32px) scale(0.94)",
+                transition: "opacity 0.85s cubic-bezier(0.2,0.8,0.2,1) 0.2s, transform 0.85s cubic-bezier(0.2,0.8,0.2,1) 0.2s",
+              }}
+            >
+              {sectionVisible ? mainCount.toFixed(1) : "0.0"}M
+            </h2>
+            {/* Scanner line sweeps down in sync with counter */}
+            <div
+              className="absolute inset-x-0 pointer-events-none"
+              style={{
+                height: "2px",
+                background: "linear-gradient(90deg, transparent 8%, oklch(0.78 0.09 65) 50%, transparent 92%)",
+                boxShadow: "0 0 20px 4px oklch(0.78 0.09 65 / 0.6)",
+                top: sectionVisible ? "104%" : "-2%",
+                transition: sectionVisible ? "top 2.65s cubic-bezier(0.15,0.05,0.25,1) 0.35s" : "none",
+              }}
+            />
+          </div>
+
+          <p
+            className="text-[10px] md:text-xs text-muted-foreground mt-3 font-mono uppercase tracking-[0.22em]"
+            style={{ opacity: sectionVisible ? 1 : 0, transition: "opacity 0.6s ease 1.7s" }}
+          >
+            {t(lang, "Cumulative views · all active channels · Jan–May 2026", "Vistas acumuladas · todos los canales · Ene–May 2026")}
+          </p>
+        </div>
+
+        {/* ── 4 STAT CARDS ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { display: `${Math.round(communityCount)}K+`, label: t(lang, "Community", "Comunidad"),         sub: "Miami Diario",          delay: 0.95 },
+            { display: `+${Math.round(growthCount)}%`,    label: t(lang, "Monthly reach", "Alcance mens."), sub: "Kimona · Mar–May 2026", delay: 1.08 },
+            { display: `${peakCount.toFixed(1)}M`,        label: t(lang, "May peak views", "Pico de mayo"), sub: "Miami Diario · 2026",   delay: 1.21 },
+            { display: `${Math.round(multiCount)}×`,      label: t(lang, "Reach multiplier", "Multiplicador"), sub: "Kimona · 6 semanas",  delay: 1.34 },
+          ].map((s, i) => (
+            <div
+              key={i}
+              className="glass rounded-2xl p-4 md:p-5 hover-lift"
+              style={{
+                opacity: sectionVisible ? 1 : 0,
+                transform: sectionVisible ? "translateY(0)" : "translateY(24px)",
+                transition: `opacity 0.65s ease ${s.delay}s, transform 0.65s cubic-bezier(0.2,0.8,0.2,1) ${s.delay}s`,
+              }}
+            >
+              <div className="font-display text-2xl md:text-[2rem] text-gradient-accent leading-none">{s.display}</div>
+              <div className="text-xs font-medium text-foreground/80 mt-2">{s.label}</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">{s.sub}</div>
+            </div>
           ))}
         </div>
 
-        {/* animated bar chart */}
-        <Reveal delay={4} className="mt-4">
-          <div className="glass rounded-2xl p-5 md:p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
-                {t(lang, "Monthly reach · Kimona Telier · 2026", "Alcance mensual · Kimona Telier · 2026")}
-              </div>
-              <div className="flex items-center gap-1.5 text-[10px] font-mono text-accent">
-                <span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent)] animate-pulse" />
-                +95% MoM
-              </div>
+        {/* ── ANIMATED SVG AREA CHART ── */}
+        <div
+          className="glass rounded-2xl p-4 md:p-5"
+          style={{
+            opacity: sectionVisible ? 1 : 0,
+            transform: sectionVisible ? "translateY(0)" : "translateY(20px)",
+            transition: "opacity 0.7s ease 1.55s, transform 0.7s ease 1.55s",
+          }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+              {t(lang, "Monthly reach · Kimona Telier · 2026", "Alcance mensual · Kimona Telier · 2026")}
             </div>
-            <div className="flex items-end gap-3 h-20">
-              {chartBars.map((b, i) => (
-                <div key={b.l} className="flex flex-col items-center gap-1.5 flex-1">
-                  <div
-                    className="w-full rounded-t origin-bottom"
-                    style={{
-                      height: `${Math.round(b.v * 0.65)}px`,
-                      background: `linear-gradient(to top, oklch(0.78 0.09 65 / 0.15), oklch(0.78 0.09 65 / ${0.35 + b.v * 0.006}))`,
-                      animation: `bar-scale 0.7s cubic-bezier(0.2,0.8,0.2,1) ${i * 0.1 + 0.4}s both`,
-                    }}
-                  />
-                  <span className="text-[9px] font-mono uppercase text-muted-foreground">{b.l}</span>
-                </div>
-              ))}
+            <div className="flex items-center gap-1.5 text-[10px] font-mono text-accent">
+              <span className="size-1.5 rounded-full bg-accent animate-pulse" />
+              +95% MoM
             </div>
           </div>
-        </Reveal>
+
+          <svg viewBox="0 0 500 72" className="w-full h-16 md:h-[5.5rem]" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="areaGM" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="oklch(0.78 0.09 65)" stopOpacity="0.38" />
+                <stop offset="100%" stopColor="oklch(0.78 0.09 65)" stopOpacity="0.02" />
+              </linearGradient>
+            </defs>
+            {/* Gradient area fill — appears after line draws */}
+            <path
+              d="M0,65 C70,62 120,55 180,44 C230,34 265,20 315,11 C355,4 430,1 500,0 L500,72 L0,72 Z"
+              fill="url(#areaGM)"
+              style={{ opacity: sectionVisible ? 1 : 0, transition: "opacity 0.9s ease 2.4s" }}
+            />
+            {/* Line draws left → right */}
+            <path
+              d="M0,65 C70,62 120,55 180,44 C230,34 265,20 315,11 C355,4 430,1 500,0"
+              stroke="oklch(0.78 0.09 65)"
+              strokeWidth="1.5"
+              fill="none"
+              style={{
+                strokeDasharray: 660,
+                strokeDashoffset: sectionVisible ? 0 : 660,
+                transition: "stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1) 1.9s",
+                filter: "drop-shadow(0 0 5px oklch(0.78 0.09 65 / 0.65))",
+              }}
+            />
+            {/* End-point dot pulses in */}
+            <circle
+              cx="500" cy="0" r="3.5" fill="oklch(0.78 0.09 65)"
+              style={{ opacity: sectionVisible ? 1 : 0, transition: "opacity 0.4s ease 3.5s", filter: "drop-shadow(0 0 6px oklch(0.78 0.09 65))" }}
+            />
+          </svg>
+
+          <div className="flex justify-between text-[9px] font-mono uppercase text-muted-foreground mt-1">
+            {["Jan", "Feb", "Mar", "Apr", "May"].map((m) => <span key={m}>{m}</span>)}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -1082,6 +1417,7 @@ function Approach() {
     { n: "04", title: t(lang, "Measurement", "Medición"), body: t(lang, "Monthly reviews with real numbers. If something isn't working, we call it. No vanity metrics.", "Revisiones mensuales con números reales. Si algo no funciona, lo decimos. Sin métricas de vanidad.") },
   ];
 
+  const [approachRef, approachVisible] = useScrollVisible(0.05);
   return (
     <section id="approach" className="snap-section relative overflow-hidden">
       {/* radial spotlight */}
@@ -1090,64 +1426,106 @@ function Approach() {
           style={{ background: "radial-gradient(circle, oklch(0.78 0.09 65 / 0.07) 0%, transparent 65%)" }} />
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 w-full relative">
-        {/* manifesto headline — full width, dramatic */}
-        <Reveal className="mb-10 md:mb-14">
-          <div className="font-display tracking-tight leading-[0.88] overflow-hidden">
-            <div className="text-4xl md:text-7xl lg:text-8xl select-none" style={{ color: "oklch(0.95 0.015 75 / 0.18)" }}>
-              {t(lang, "We don't start", "No empezamos")}
+      <div ref={approachRef} className="mx-auto max-w-6xl px-6 w-full relative">
+        {/* Manifesto — each line rises behind its own clip mask */}
+        <div className="mb-10 md:mb-14">
+          <div className="font-display tracking-tight leading-[0.88]">
+            {/* Line 1 — ghost text */}
+            <div className="overflow-hidden">
+              <div
+                className="text-4xl md:text-7xl lg:text-8xl select-none"
+                style={{
+                  color: "oklch(0.95 0.015 75 / 0.18)",
+                  transform: approachVisible ? "translateY(0)" : "translateY(110%)",
+                  transition: "transform 1s cubic-bezier(0.2,0.8,0.2,1) 0.05s",
+                }}
+              >
+                {t(lang, "We don't start", "No empezamos")}
+              </div>
             </div>
-            <div className="text-4xl md:text-7xl lg:text-8xl text-gradient-accent">
-              {t(lang, "projects.", "proyectos.")}
+            {/* Line 2 — accent gradient */}
+            <div className="overflow-hidden">
+              <div
+                className="text-4xl md:text-7xl lg:text-8xl text-gradient-accent"
+                style={{
+                  transform: approachVisible ? "translateY(0)" : "translateY(110%)",
+                  transition: "transform 1s cubic-bezier(0.2,0.8,0.2,1) 0.18s",
+                }}
+              >
+                {t(lang, "projects.", "proyectos.")}
+              </div>
             </div>
-            <div className="text-2xl md:text-4xl lg:text-5xl italic text-foreground/70 mt-2">
-              {t(lang, "We start partnerships.", "Empezamos relaciones.")}
+            {/* Line 3 — italic */}
+            <div className="overflow-hidden mt-2">
+              <div
+                className="text-2xl md:text-4xl lg:text-5xl italic text-foreground/70"
+                style={{
+                  transform: approachVisible ? "translateY(0)" : "translateY(110%)",
+                  transition: "transform 0.9s cubic-bezier(0.2,0.8,0.2,1) 0.32s",
+                }}
+              >
+                {t(lang, "We start partnerships.", "Empezamos relaciones.")}
+              </div>
             </div>
           </div>
-        </Reveal>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-10 md:gap-16">
-          {/* left: context */}
-          <div>
-            <Reveal>
-              <SectionLabel>{t(lang, "How we work", "Cómo trabajamos")}</SectionLabel>
-              <p className="text-muted-foreground max-w-sm text-sm md:text-base leading-relaxed">
-                {t(lang,
-                  "Every engagement runs on the same four-phase methodology, regardless of scale. No exceptions, no shortcuts.",
-                  "Cada trabajo corre sobre la misma metodología de cuatro fases, sin importar el tamaño. Sin excepciones ni atajos."
-                )}
-              </p>
-            </Reveal>
-            <Reveal delay={2} className="mt-6">
-              <div className="inline-flex items-start gap-3 glass-subtle rounded-xl px-5 py-4 border border-white/[0.07]">
-                <span className="size-2 rounded-full bg-accent shadow-[0_0_10px_var(--accent)] animate-pulse mt-1 shrink-0" />
-                <div>
-                  <div className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">{t(lang, "Current availability", "Disponibilidad actual")}</div>
-                  <div className="text-sm font-medium mt-0.5">{t(lang, "2 spots open · Q3 2026", "2 cupos disponibles · Q3 2026")}</div>
-                </div>
+          {/* Left — slides from left */}
+          <div
+            style={{
+              opacity: approachVisible ? 1 : 0,
+              transform: approachVisible ? "translateX(0)" : "translateX(-28px)",
+              transition: "opacity 0.75s ease 0.5s, transform 0.75s cubic-bezier(0.2,0.8,0.2,1) 0.5s",
+            }}
+          >
+            <SectionLabel>{t(lang, "How we work", "Cómo trabajamos")}</SectionLabel>
+            <p className="text-muted-foreground max-w-sm text-sm md:text-base leading-relaxed">
+              {t(lang,
+                "Every engagement runs on the same four-phase methodology, regardless of scale. No exceptions, no shortcuts.",
+                "Cada trabajo corre sobre la misma metodología de cuatro fases, sin importar el tamaño. Sin excepciones ni atajos."
+              )}
+            </p>
+            <div
+              className="mt-6 inline-flex items-start gap-3 glass-subtle rounded-xl px-5 py-4 border border-white/[0.07]"
+              style={{
+                opacity: approachVisible ? 1 : 0,
+                transform: approachVisible ? "translateY(0)" : "translateY(16px)",
+                transition: "opacity 0.65s ease 0.75s, transform 0.65s ease 0.75s",
+              }}
+            >
+              <span className="size-2 rounded-full bg-accent shadow-[0_0_10px_var(--accent)] animate-pulse mt-1 shrink-0" />
+              <div>
+                <div className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">{t(lang, "Current availability", "Disponibilidad actual")}</div>
+                <div className="text-sm font-medium mt-0.5">{t(lang, "2 spots open · Q3 2026", "2 cupos disponibles · Q3 2026")}</div>
               </div>
-            </Reveal>
+            </div>
           </div>
 
-          {/* right: pillars with 3D tilt on container */}
+          {/* Right — pillars slide from right, staggered */}
           <div
             className="space-y-2.5"
             style={{ transition: "transform 0.2s ease-out" }}
             onMouseMove={pillarTilt} onMouseLeave={resetPillar}
           >
             {pillars.map((p, i) => (
-              <Reveal key={p.n} delay={((i % 4) + 1) as 1 | 2 | 3 | 4}>
-                <div className="group relative glass-subtle rounded-xl border border-white/[0.07] px-5 py-4 flex gap-4 items-start overflow-hidden hover-lift">
-                  {/* animated left accent bar */}
-                  <div className="absolute left-0 top-0 bottom-0 w-[2px] rounded-r bg-accent/0 group-hover:bg-accent/70 transition-all duration-500" />
-                  <span className="font-mono text-[10px] shrink-0 mt-1 text-accent/50 group-hover:text-accent transition-colors duration-300">{p.n}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-lg md:text-xl group-hover:text-gradient-accent transition-colors duration-300">{p.title}</div>
-                    <p className="text-xs md:text-sm text-muted-foreground mt-1 leading-relaxed">{p.body}</p>
-                  </div>
-                  <span className="ml-auto shrink-0 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 text-accent transition-all duration-300 text-sm">→</span>
+              <div
+                key={p.n}
+                style={{
+                  opacity: approachVisible ? 1 : 0,
+                  transform: approachVisible ? "translateX(0)" : "translateX(32px)",
+                  transition: `opacity 0.7s ease ${0.55 + i * 0.1}s, transform 0.7s cubic-bezier(0.2,0.8,0.2,1) ${0.55 + i * 0.1}s`,
+                }}
+                className="group relative glass-subtle rounded-xl border border-white/[0.07] px-5 py-4 flex gap-4 items-start overflow-hidden hover-lift"
+              >
+                <div className="absolute left-0 top-0 bottom-0 w-[2px] rounded-r bg-accent/0 group-hover:bg-accent/70 transition-all duration-500" />
+                <span className="font-mono text-[10px] shrink-0 mt-1 text-accent/50 group-hover:text-accent transition-colors duration-300">{p.n}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="font-display text-lg md:text-xl group-hover:text-gradient-accent transition-colors duration-300">{p.title}</div>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1 leading-relaxed">{p.body}</p>
                 </div>
-              </Reveal>
+                <span className="ml-auto shrink-0 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 text-accent transition-all duration-300 text-sm">→</span>
+              </div>
             ))}
           </div>
         </div>
