@@ -748,16 +748,69 @@ function Services() {
 }
 
 /* ---------------- Work (portfolio) ---------------- */
+function WorkCard({ p, i, visible }: { p: { name: string; tag: string; url: string; href: string; img: string }; i: number; visible: boolean }) {
+  const delay = 0.22 + i * 0.09;
+  return (
+    <a
+      key={p.name}
+      href={p.href} target="_blank" rel="noopener noreferrer"
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "scale(1) translateY(0)" : "scale(0.93) translateY(20px)",
+        transition: `opacity 0.7s cubic-bezier(0.2,0.8,0.2,1) ${delay}s, transform 0.7s cubic-bezier(0.2,0.8,0.2,1) ${delay}s`,
+      }}
+      className="glass hover-lift rounded-2xl overflow-hidden group block"
+    >
+      <div className="relative border-b border-white/10">
+        <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/10 bg-white/[0.03]">
+          {[0,1,2].map((j) => (
+            <span
+              key={j}
+              className="size-2 rounded-full bg-white/20"
+              style={{
+                transform: visible ? "scale(1)" : "scale(0)",
+                transition: `transform 0.35s cubic-bezier(0.34,1.56,0.64,1) ${delay + 0.12 + j * 0.06}s`,
+              }}
+            />
+          ))}
+          <span className="ml-2 text-[10px] font-mono text-muted-foreground truncate">{p.url}</span>
+        </div>
+        <div className="aspect-[16/10] relative overflow-hidden bg-black/30">
+          <img
+            src={p.img} alt={`${p.name} preview`} loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-[1.04]"
+            style={{
+              filter: visible ? "blur(0px) brightness(1)" : "blur(6px) brightness(0.7)",
+              transition: `filter 0.9s ease ${delay + 0.1}s, transform 0.7s cubic-bezier(0.2,0.8,0.2,1)`,
+            }}
+          />
+        </div>
+      </div>
+      <div className="p-4 flex items-center justify-between">
+        <div>
+          <h3 className="font-display text-lg md:text-xl">{p.name}</h3>
+          <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mt-1">{p.tag}</p>
+        </div>
+        <span className="size-8 rounded-full glass-subtle flex items-center justify-center text-muted-foreground group-hover:text-accent transition-colors">↗</span>
+      </div>
+    </a>
+  );
+}
+
 function Work() {
   const { lang } = useLang();
+  const [showAll, setShowAll] = useState(false);
   const projects = [
     { name: "Kimona Telier", tag: "E-Commerce · Shopify", url: "kimonatelier.com", href: "https://kimonatelier.com/", img: `${base}assets/1.png` },
     { name: "The Legacy Holding", tag: "Corporate · Real Estate", url: "thelegacyholding.com", href: "https://www.thelegacyholding.com", img: `${base}assets/2.png` },
     { name: "Oasis Yacht Club", tag: "Luxury · Marine", url: "by0gch-qd.myshopify.com", href: "https://by0gch-qd.myshopify.com/", img: `${base}assets/3.png` },
     { name: "Universe Media", tag: "News · Digital Media", url: "universe-media-two.vercel.app", href: "https://universe-media-two.vercel.app/", img: `${base}assets/4.png` },
-    { name: "Ishin Academy", tag: "Education · Framer", url: "ishinacademy.framer.website", href: "https://ishinacademy.framer.website/", img: `${base}assets/5.png` },
+    { name: "Kanu Decor", tag: "E-Commerce · Interior", url: "kanudecor.com", href: "https://kanudecor.com/", img: `${base}assets/7.png` },
     { name: "Aurélia", tag: "Beauty · Branding · Web", url: "aureliaesthetics.lovable.app", href: "https://aureliaesthetics.lovable.app/", img: `${base}assets/6.png` },
+    { name: "Ishin Academy", tag: "Education · Framer", url: "ishinacademy.framer.website", href: "https://ishinacademy.framer.website/", img: `${base}assets/5.png` },
   ];
+  const visible = projects.slice(0, 6);
+  const extra = projects.slice(6);
   const [workRef, workVisible] = useScrollVisible(0.06);
   return (
     <section id="work" className="snap-section relative">
@@ -773,58 +826,47 @@ function Work() {
           <em className="text-accent">{t(lang, "bold.", "audaces.")}</em>
         </h2>
 
-        {/* Cards: scale-up from below with stagger, image un-blurs */}
+        {/* Always-visible first 6 */}
         <div className="mt-8 md:mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          {projects.map((p, i) => {
-            const delay = 0.22 + i * 0.09;
-            return (
-              <a
-                key={p.name}
-                href={p.href} target="_blank" rel="noopener noreferrer"
-                style={{
-                  opacity: workVisible ? 1 : 0,
-                  transform: workVisible ? "scale(1) translateY(0)" : "scale(0.93) translateY(20px)",
-                  transition: `opacity 0.7s cubic-bezier(0.2,0.8,0.2,1) ${delay}s, transform 0.7s cubic-bezier(0.2,0.8,0.2,1) ${delay}s`,
-                }}
-                className="glass hover-lift rounded-2xl overflow-hidden group block"
-              >
-                <div className="relative border-b border-white/10">
-                  {/* Browser chrome dots pop in with spring, sequential */}
-                  <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/10 bg-white/[0.03]">
-                    {[0,1,2].map((j) => (
-                      <span
-                        key={j}
-                        className="size-2 rounded-full bg-white/20"
-                        style={{
-                          transform: workVisible ? "scale(1)" : "scale(0)",
-                          transition: `transform 0.35s cubic-bezier(0.34,1.56,0.64,1) ${delay + 0.12 + j * 0.06}s`,
-                        }}
-                      />
-                    ))}
-                    <span className="ml-2 text-[10px] font-mono text-muted-foreground truncate">{p.url}</span>
-                  </div>
-                  <div className="aspect-[16/10] relative overflow-hidden bg-black/30">
-                    <img
-                      src={p.img} alt={`${p.name} preview`} loading="lazy"
-                      className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-[1.04]"
-                      style={{
-                        filter: workVisible ? "blur(0px) brightness(1)" : "blur(6px) brightness(0.7)",
-                        transition: `filter 0.9s ease ${delay + 0.1}s, transform 0.7s cubic-bezier(0.2,0.8,0.2,1)`,
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="p-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-display text-lg md:text-xl">{p.name}</h3>
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mt-1">{p.tag}</p>
-                  </div>
-                  <span className="size-8 rounded-full glass-subtle flex items-center justify-center text-muted-foreground group-hover:text-accent transition-colors">↗</span>
-                </div>
-              </a>
-            );
-          })}
+          {visible.map((p, i) => (
+            <WorkCard key={p.name} p={p} i={i} visible={workVisible} />
+          ))}
         </div>
+
+        {/* Expandable extra rows */}
+        {extra.length > 0 && (
+          <>
+            <div
+              className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 overflow-hidden"
+              style={{
+                maxHeight: showAll ? `${Math.ceil(extra.length / 3) * 420}px` : "0px",
+                opacity: showAll ? 1 : 0,
+                marginTop: showAll ? "12px" : "0px",
+                transition: "max-height 0.6s cubic-bezier(0.2,0.8,0.2,1), opacity 0.4s ease, margin-top 0.3s ease",
+              }}
+            >
+              {extra.map((p, i) => (
+                <WorkCard key={p.name} p={p} i={i} visible={showAll} />
+              ))}
+            </div>
+
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={() => setShowAll((v) => !v)}
+                className="group inline-flex items-center gap-2.5 glass-subtle border border-white/[0.10] hover:border-accent/40 rounded-full px-6 py-3 text-sm font-mono uppercase tracking-[0.18em] text-muted-foreground hover:text-accent transition-all duration-300"
+              >
+                <span>{showAll ? t(lang, "Show less", "Ver menos") : t(lang, "Show more", "Ver más")}</span>
+                <svg
+                  viewBox="0 0 16 16" className="size-3.5 transition-transform duration-300"
+                  style={{ transform: showAll ? "rotate(180deg)" : "rotate(0deg)" }}
+                  fill="none" stroke="currentColor" strokeWidth="1.5"
+                >
+                  <path d="M3 6l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </section>
   );
