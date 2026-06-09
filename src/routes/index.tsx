@@ -197,7 +197,7 @@ type SectionKey = "overview" | "results";
 const CLIENT_META: Record<ClientKey, { label: string; handle: string; tag: string }> = {
   aurelia: { label: "Aurélia", handle: "@aurelia.estudio", tag: "Branding · Web · Editorial" },
   miamidiario: { label: "Miami Diario", handle: "@miamidiario", tag: "Social · Editorial · Paid Media" },
-  kimona: { label: "Kimona Telier", handle: "@kimonatelier", tag: "E-commerce · Editorial · Brand" },
+  kimona: { label: "Kimona Atelier", handle: "@kimonatelier", tag: "E-commerce · Editorial · Brand" },
 };
 
 const SECTION_META: Record<SectionKey, { caption: Record<ClientKey, string> }> = {
@@ -801,7 +801,7 @@ function Work() {
   const { lang } = useLang();
   const [showAll, setShowAll] = useState(false);
   const projects = [
-    { name: "Kimona Telier", tag: "E-Commerce · Shopify", url: "kimonatelier.com", href: "https://kimonatelier.com/", img: `${base}assets/1.png` },
+    { name: "Kimona Atelier", tag: "E-Commerce · Shopify", url: "kimonatelier.com", href: "https://kimonatelier.com/", img: `${base}assets/1.png` },
     { name: "The Legacy Holding", tag: "Corporate · Real Estate", url: "thelegacyholding.com", href: "https://www.thelegacyholding.com", img: `${base}assets/2.png` },
     { name: "Oasis Yacht Club", tag: "Luxury · Marine", url: "by0gch-qd.myshopify.com", href: "https://by0gch-qd.myshopify.com/", img: `${base}assets/3.png` },
     { name: "Universe Media", tag: "News · Digital Media", url: "universe-media-two.vercel.app", href: "https://universe-media-two.vercel.app/", img: `${base}assets/4.png` },
@@ -1390,7 +1390,7 @@ function Metrics() {
         >
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
-              {t(lang, "Monthly reach · Kimona Telier · 2026", "Alcance mensual · Kimona Telier · 2026")}
+              {t(lang, "Monthly reach · Kimona Atelier · 2026", "Alcance mensual · Kimona Atelier · 2026")}
             </div>
             <div className="flex items-center gap-1.5 text-[10px] font-mono text-accent">
               <span className="size-1.5 rounded-full bg-accent animate-pulse" />
