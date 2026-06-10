@@ -167,23 +167,9 @@ function Hero({ go, scrolled }: { go: (id: string) => void; scrolled: boolean })
         <Reveal delay={2} className="mt-8 max-w-xl text-base md:text-xl text-foreground/80 text-pretty">
           {t(
             lang,
-            "Find the definitive solutions for your business. Websites, social media, editorial direction, and digital infrastructure — operating as one system.",
-            "Encuentra las soluciones definitivas para tu marca. Web, social media, dirección editorial e infraestructura digital — operando como un solo sistema."
+            "Miami-based digital solutions pioneers. Websites, social media, editorial direction, and digital infrastructure — operating as one system.",
+            "Pioneros en soluciones digitales con base en Miami. Web, social media, dirección editorial e infraestructura digital — operando como un solo sistema."
           )}
-        </Reveal>
-        <Reveal delay={3} className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <button
-            onClick={() => go("contact")}
-            className="rounded-full bg-primary text-primary-foreground px-6 py-3 text-sm font-medium hover:opacity-90 transition-opacity"
-          >
-            {t(lang, "Transform my business →", "Transformar mi marca →")}
-          </button>
-          <button
-            onClick={() => go("services")}
-            className="rounded-full glass px-6 py-3 text-sm font-medium hover-lift"
-          >
-            {t(lang, "Explore services", "Ver servicios")}
-          </button>
         </Reveal>
       </div>
     </section>
@@ -547,12 +533,12 @@ function KimonaResults() {
 
 /* ---------- Dashboard shell ---------- */
 function SystemOverview() {
-  const [clientKey, setClientKey] = useState<ClientKey>("aurelia");
+  const [clientKey, setClientKey] = useState<ClientKey>("miamidiario");
   const [section, setSection] = useState<SectionKey>("overview");
   const meta = CLIENT_META[clientKey];
   const caption = SECTION_META[section].caption[clientKey];
 
-  const clients: ClientKey[] = ["aurelia", "miamidiario", "kimona"];
+  const clients: ClientKey[] = ["miamidiario", "kimona", "aurelia"];
   const sections: { k: SectionKey; label: string }[] = [
     { k: "overview", label: "Overview" },
     { k: "results", label: "Results" },
@@ -801,13 +787,13 @@ function Work() {
   const { lang } = useLang();
   const [showAll, setShowAll] = useState(false);
   const projects = [
-    { name: "Kimona Atelier", tag: "E-Commerce · Shopify", url: "kimonatelier.com", href: "https://kimonatelier.com/", img: `${base}assets/1.png` },
-    { name: "The Legacy Holding", tag: "Corporate · Real Estate", url: "thelegacyholding.com", href: "https://www.thelegacyholding.com", img: `${base}assets/2.png` },
-    { name: "Oasis Yacht Club", tag: "Luxury · Marine", url: "by0gch-qd.myshopify.com", href: "https://by0gch-qd.myshopify.com/", img: `${base}assets/3.png` },
-    { name: "Universe Media", tag: "News · Digital Media", url: "universe-media-two.vercel.app", href: "https://universe-media-two.vercel.app/", img: `${base}assets/4.png` },
-    { name: "Kanu Decor", tag: "E-Commerce · Interior", url: "kanudecor.com", href: "https://kanudecor.com/", img: `${base}assets/7.png` },
-    { name: "Aurélia", tag: "Beauty · Branding · Web", url: "aureliaesthetics.lovable.app", href: "https://aureliaesthetics.lovable.app/", img: `${base}assets/6.png` },
-    { name: "Ishin Academy", tag: "Education · Framer", url: "ishinacademy.framer.website", href: "https://ishinacademy.framer.website/", img: `${base}assets/5.png` },
+    { name: "Kimona Atelier", tag: "E-Commerce · Shopify", url: "kimonatelier.com", href: "https://kimonatelier.com/", img: `${base}assets/1.png`, mobileImg: `${base}assets/mobile/1.png` },
+    { name: "The Legacy Holding", tag: "Corporate · Real Estate", url: "thelegacyholding.com", href: "https://www.thelegacyholding.com", img: `${base}assets/2.png`, mobileImg: `${base}assets/mobile/2.png` },
+    { name: "Kanu Decor", tag: "E-Commerce · Interior", url: "kanudecor.com", href: "https://kanudecor.com/", img: `${base}assets/7.png`, mobileImg: `${base}assets/mobile/7.png` },
+    { name: "Universe Media", tag: "News · Digital Media", url: "universe-media-two.vercel.app", href: "https://universe-media-two.vercel.app/", img: `${base}assets/4.png`, mobileImg: `${base}assets/mobile/4.png` },
+    { name: "Ishin Academy", tag: "Education · Framer", url: "ishinacademy.framer.website", href: "https://ishinacademy.framer.website/", img: `${base}assets/5.png`, mobileImg: `${base}assets/mobile/5.png` },
+    { name: "Aurélia", tag: "Beauty · Branding · Web", url: "aureliaesthetics.lovable.app", href: "https://aureliaesthetics.lovable.app/", img: `${base}assets/6.png`, mobileImg: `${base}assets/mobile/6.png` },
+    { name: "Oasis Yacht Club", tag: "Luxury · Marine", url: "by0gch-qd.myshopify.com", href: "https://by0gch-qd.myshopify.com/", img: `${base}assets/3.png`, mobileImg: `${base}assets/mobile/3.png` },
   ];
   const visible = projects.slice(0, 6);
   const extra = projects.slice(6);
@@ -826,16 +812,56 @@ function Work() {
           <em className="text-accent">{t(lang, "bold.", "audaces.")}</em>
         </h2>
 
-        {/* Always-visible first 6 */}
-        <div className="mt-8 md:mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+        {/* ── MOBILE carousel (hidden on sm+) ── */}
+        <div className="sm:hidden mt-8 -mx-6">
+          <div
+            className="flex gap-3 overflow-x-scroll px-6"
+            style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+          >
+            {projects.map((p) => (
+                <a
+                  key={p.name}
+                  href={p.href} target="_blank" rel="noopener noreferrer"
+                  style={{ scrollSnapAlign: "start", flexShrink: 0, width: "72vw" } as React.CSSProperties}
+                  className="block rounded-2xl overflow-hidden glass group"
+                >
+                  <div className="relative" style={{ aspectRatio: "9/16" }}>
+                    <img
+                      src={p.mobileImg} alt={`${p.name} preview`} loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover object-center group-active:scale-[1.03] transition-transform duration-300"
+                    />
+                    {/* Bottom overlay with name + tag */}
+                    <div className="absolute inset-x-0 bottom-0 px-4 py-4"
+                      style={{ background: "linear-gradient(to top, oklch(0.12 0.01 55 / 0.92) 0%, transparent 100%)" }}>
+                      <h3 className="font-display text-lg text-foreground">{p.name}</h3>
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mt-0.5">{p.tag}</p>
+                    </div>
+                    {/* Arrow badge */}
+                    <div className="absolute top-3 right-3 size-7 rounded-full glass-subtle flex items-center justify-center text-muted-foreground text-xs">↗</div>
+                  </div>
+                </a>
+            ))}
+            {/* trailing spacer so last card doesn't hug edge */}
+            <div style={{ flexShrink: 0, width: "24px" }} />
+          </div>
+          {/* Scroll hint dots */}
+          <div className="flex justify-center gap-1.5 mt-3">
+            {projects.map((p) => (
+              <span key={p.name} className="size-1 rounded-full bg-white/20" />
+            ))}
+          </div>
+        </div>
+
+        {/* ── DESKTOP grid (hidden on mobile) ── */}
+        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mt-8 md:mt-10">
           {visible.map((p, i) => (
             <WorkCard key={p.name} p={p} i={i} visible={workVisible} />
           ))}
         </div>
 
-        {/* Expandable extra rows */}
+        {/* Expandable extra rows (desktop only) */}
         {extra.length > 0 && (
-          <>
+          <div className="hidden sm:block">
             <div
               className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 overflow-hidden"
               style={{
@@ -865,7 +891,7 @@ function Work() {
                 </svg>
               </button>
             </div>
-          </>
+          </div>
         )}
       </div>
     </section>
