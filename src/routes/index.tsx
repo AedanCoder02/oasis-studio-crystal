@@ -96,7 +96,7 @@ function Nav({ go, scrolled }: { go: (id: string) => void; scrolled: boolean }) 
     { id: "faq", label: "FAQ" },
   ];
   return (
-    <header className="fixed top-0 inset-x-0 z-50 py-4 transition-all duration-500">
+    <header className="site-header fixed top-0 inset-x-0 z-50 py-4 transition-all duration-500">
       <div className="mx-auto max-w-6xl px-4 md:px-5">
         <nav className={`flex items-center justify-between rounded-full px-4 md:px-5 py-2.5 glass-strong transition-all duration-500 ${scrolled ? "nav-scrolled" : ""}`}>
           <button onClick={() => go("home")} className="flex items-center">

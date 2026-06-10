@@ -253,6 +253,16 @@
   100%       { background-color: #15a5c8; }
 }
 
+/* Mobile nav — blur the full header bar, not just the inner pill */
+@media (max-width: 767px) {
+  .site-header {
+    background: oklch(1 0 0 / 0.06);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border-bottom: 1px solid oklch(1 0 0 / 0.07);
+  }
+}
+
 /* Mobile carousel swipe chevron pulse */
 @keyframes swipe-chevron {
   0%, 100% { opacity: 0.25; transform: translateX(0); }
