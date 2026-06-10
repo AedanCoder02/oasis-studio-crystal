@@ -224,14 +224,14 @@
 }
 .oasis-bg .blob-1 {
   top: -25%; left: -25%;
-  background: #c8366b;
+  background: #15a5c8;
   animation: blob-shift-1 25s ease-in-out infinite alternate, hue-cycle 60s linear infinite;
 }
 .oasis-bg .blob-2 {
   bottom: -25%; right: -25%;
-  background: #7c1fd9;
+  background: #d4671e;
   animation: blob-shift-2 30s ease-in-out infinite alternate, hue-cycle 60s linear infinite;
-  animation-delay: 0s, -15s; /* leads blob-1 by one spectrum step */
+  animation-delay: 0s, -20s; /* leads blob-1 by one step */
 }
 
 @keyframes blob-shift-1 {
@@ -245,14 +245,12 @@
   100% { transform: translate(-18vw, -14vh) scale(1.15); }
 }
 
-/* Spectrum cycle: pink → blue → teal → amber → orange → pink */
+/* Warm cycle: teal → amber → orange → teal */
 @keyframes hue-cycle {
-  0%,   10%  { background-color: #c8366b; }
-  20%,  30%  { background-color: #2b3df0; }
-  40%,  50%  { background-color: #15a5c8; }
-  60%,  70%  { background-color: #e8b13a; }
-  80%,  90%  { background-color: #d4671e; }
-  100%       { background-color: #c8366b; }
+  0%,   12%  { background-color: #15a5c8; }
+  33%,  45%  { background-color: #e8b13a; }
+  66%,  78%  { background-color: #d4671e; }
+  100%       { background-color: #15a5c8; }
 }
 
 /* Snap scroll page deck */
