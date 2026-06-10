@@ -733,8 +733,104 @@ function Services() {
   );
 }
 
+/* ---------------- Mobile Carousel ---------------- */
+type Project = { name: string; tag: string; url: string; href: string; img: string; mobileImg: string };
+
+function MobileCarousel({ projects }: { projects: Project[] }) {
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [interacted, setInteracted] = useState(false);
+
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (!interacted) setInteracted(true);
+      const cardW = window.innerWidth * 0.8 + 12;
+      const idx = Math.round(el.scrollLeft / cardW);
+      setActiveIdx(Math.max(0, Math.min(idx, projects.length - 1)));
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [interacted, projects.length]);
+
+  return (
+    <div className="sm:hidden mt-8 -mx-6">
+      <div
+        ref={carouselRef}
+        className="flex gap-3 overflow-x-scroll"
+        style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingLeft: "10vw", paddingRight: "10vw" } as React.CSSProperties}
+      >
+        {projects.map((p, i) => {
+          const active = i === activeIdx;
+          return (
+            <a
+              key={p.name}
+              href={p.href} target="_blank" rel="noopener noreferrer"
+              style={{
+                scrollSnapAlign: "center", flexShrink: 0, width: "80vw",
+                opacity: active ? 1 : 0.35,
+                transform: active ? "scale(1)" : "scale(0.93)",
+                transition: "opacity 0.4s ease, transform 0.4s cubic-bezier(0.2,0.8,0.2,1)",
+              } as React.CSSProperties}
+              className="block rounded-2xl overflow-hidden glass"
+            >
+              <div className="relative" style={{ aspectRatio: "9/16" }}>
+                <img
+                  src={p.mobileImg} alt={`${p.name} preview`} loading="lazy"
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                />
+                <div
+                  className="absolute inset-x-0 bottom-0 px-4 py-5"
+                  style={{ background: "linear-gradient(to top, oklch(0.10 0.01 55 / 0.95) 0%, transparent 55%)" }}
+                >
+                  <h3 className="font-display text-xl text-foreground">{p.name}</h3>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mt-1">{p.tag}</p>
+                </div>
+                <div className="absolute top-3 right-3 size-7 rounded-full glass-subtle flex items-center justify-center text-muted-foreground text-xs">↗</div>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+
+      {/* Pill progress dots */}
+      <div className="flex justify-center items-center gap-1.5 mt-4">
+        {projects.map((_, i) => (
+          <span
+            key={i}
+            style={{
+              display: "block",
+              width: i === activeIdx ? "20px" : "5px",
+              height: "4px",
+              borderRadius: "2px",
+              background: i === activeIdx ? "var(--color-accent)" : "oklch(1 0 0 / 0.18)",
+              transition: "width 0.35s cubic-bezier(0.2,0.8,0.2,1), background 0.35s ease",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Swipe hint — fades out after first scroll */}
+      <div
+        className="flex items-center justify-center gap-2 mt-3"
+        style={{ opacity: interacted ? 0 : 1, transition: "opacity 0.5s ease", pointerEvents: "none" }}
+      >
+        <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/50">swipe</span>
+        <div className="flex items-center gap-0.5">
+          {[0, 1, 2].map((j) => (
+            <svg key={j} viewBox="0 0 8 12" style={{ width: "7px", height: "11px", color: "var(--color-accent)", animation: `swipe-chevron 1.3s ease-in-out ${j * 0.2}s infinite` }}>
+              <path d="M1 1.5l3 4.5-3 4.5" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- Work (portfolio) ---------------- */
-function WorkCard({ p, i, visible }: { p: { name: string; tag: string; url: string; href: string; img: string }; i: number; visible: boolean }) {
+function WorkCard({ p, i, visible }: { p: Project; i: number; visible: boolean }) {
   const delay = 0.22 + i * 0.09;
   return (
     <a
@@ -813,44 +909,7 @@ function Work() {
         </h2>
 
         {/* ── MOBILE carousel (hidden on sm+) ── */}
-        <div className="sm:hidden mt-8 -mx-6">
-          <div
-            className="flex gap-3 overflow-x-scroll px-6"
-            style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
-          >
-            {projects.map((p) => (
-                <a
-                  key={p.name}
-                  href={p.href} target="_blank" rel="noopener noreferrer"
-                  style={{ scrollSnapAlign: "start", flexShrink: 0, width: "72vw" } as React.CSSProperties}
-                  className="block rounded-2xl overflow-hidden glass group"
-                >
-                  <div className="relative" style={{ aspectRatio: "9/16" }}>
-                    <img
-                      src={p.mobileImg} alt={`${p.name} preview`} loading="lazy"
-                      className="absolute inset-0 w-full h-full object-cover object-center group-active:scale-[1.03] transition-transform duration-300"
-                    />
-                    {/* Bottom overlay with name + tag */}
-                    <div className="absolute inset-x-0 bottom-0 px-4 py-4"
-                      style={{ background: "linear-gradient(to top, oklch(0.12 0.01 55 / 0.92) 0%, transparent 100%)" }}>
-                      <h3 className="font-display text-lg text-foreground">{p.name}</h3>
-                      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mt-0.5">{p.tag}</p>
-                    </div>
-                    {/* Arrow badge */}
-                    <div className="absolute top-3 right-3 size-7 rounded-full glass-subtle flex items-center justify-center text-muted-foreground text-xs">↗</div>
-                  </div>
-                </a>
-            ))}
-            {/* trailing spacer so last card doesn't hug edge */}
-            <div style={{ flexShrink: 0, width: "24px" }} />
-          </div>
-          {/* Scroll hint dots */}
-          <div className="flex justify-center gap-1.5 mt-3">
-            {projects.map((p) => (
-              <span key={p.name} className="size-1 rounded-full bg-white/20" />
-            ))}
-          </div>
-        </div>
+        <MobileCarousel projects={projects} />
 
         {/* ── DESKTOP grid (hidden on mobile) ── */}
         <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mt-8 md:mt-10">
