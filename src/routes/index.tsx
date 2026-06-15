@@ -800,7 +800,7 @@ function Work() {
     { name: "Universe Media", tag: "News · Digital Media", url: "universe-media-two.vercel.app", href: "https://universe-media-two.vercel.app/", img: `${base}assets/4.png`, mobileImg: `${base}assets/mobile/4.jpg` },
     { name: "Ishin Academy", tag: "Education · Framer", url: "ishinacademy.framer.website", href: "https://ishinacademy.framer.website/", img: `${base}assets/5.png`, mobileImg: `${base}assets/mobile/5.jpg` },
     { name: "Aurélia", tag: "Beauty · Branding · Web", url: "aureliaesthetics.lovable.app", href: "https://aureliaesthetics.lovable.app/", img: `${base}assets/6.png`, mobileImg: `${base}assets/mobile/6.jpg` },
-    { name: "Oasis Yacht Club", tag: "Luxury · Marine", url: "by0gch-qd.myshopify.com", href: "https://by0gch-qd.myshopify.com/", img: `${base}assets/3.png`, mobileImg: `${base}assets/mobile/7.jpg` },
+    { name: "Oasis Yacht Club", tag: "Luxury · Marine", url: "by0gch-qd.myshopify.com", href: "https://by0gch-qd.myshopify.com/", img: `${base}assets/3.png`, mobileImg: `${base}assets/mobile/5.jpg` },
   ];
   const visible = projects.slice(0, 6);
   const extra = projects.slice(6);
