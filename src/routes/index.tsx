@@ -776,6 +776,7 @@ function WorkCard({ p, i, visible }: { p: Project; i: number; visible: boolean }
 function Work() {
   const { lang } = useLang();
   const [showAll, setShowAll] = useState(false);
+  const [mobileShowAll, setMobileShowAll] = useState(false);
   const projects = [
     { name: "Kimona Atelier", tag: "E-Commerce · Shopify", url: "kimonatelier.com", href: "https://kimonatelier.com/", img: `${base}assets/1.png`, mobileImg: `${base}assets/mobile/1.jpg` },
     { name: "The Legacy Holding", tag: "Corporate · Real Estate", url: "thelegacyholding.com", href: "https://www.thelegacyholding.com", img: `${base}assets/2.png`, mobileImg: `${base}assets/mobile/2.png` },
@@ -803,7 +804,18 @@ function Work() {
         </h2>
 
         {/* ── MOBILE carousel (hidden on sm+) ── */}
-        <MobileCarousel projects={projects} />
+        <MobileCarousel projects={mobileShowAll ? projects : projects.slice(0, 5)} />
+        {!mobileShowAll && (
+          <div className="sm:hidden flex justify-center mt-5">
+            <button
+              onClick={() => setMobileShowAll(true)}
+              className="inline-flex items-center gap-2 glass-subtle border border-white/[0.10] hover:border-accent/40 rounded-full px-6 py-3 text-sm font-mono uppercase tracking-[0.18em] text-muted-foreground hover:text-accent transition-all duration-300"
+            >
+              {t(lang, "Show more", "Ver más")}
+              <span className="text-accent">+2</span>
+            </button>
+          </div>
+        )}
 
         {/* ── DESKTOP grid (hidden on mobile) ── */}
         <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mt-8 md:mt-10">
