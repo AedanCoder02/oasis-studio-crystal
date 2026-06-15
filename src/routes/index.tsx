@@ -779,11 +779,11 @@ function Work() {
   const projects = [
     { name: "Kimona Atelier", tag: "E-Commerce · Shopify", url: "kimonatelier.com", href: "https://kimonatelier.com/", img: `${base}assets/1.png`, mobileImg: `${base}assets/mobile/1.jpg` },
     { name: "The Legacy Holding", tag: "Corporate · Real Estate", url: "thelegacyholding.com", href: "https://www.thelegacyholding.com", img: `${base}assets/2.png`, mobileImg: `${base}assets/mobile/2.png` },
-    { name: "Kanu Decor", tag: "E-Commerce · Interior", url: "kanudecor.com", href: "https://kanudecor.com/", img: `${base}assets/7.png`, mobileImg: `${base}assets/mobile/7.jpg` },
+    { name: "Kanu Decor", tag: "E-Commerce · Interior", url: "kanudecor.com", href: "https://kanudecor.com/", img: `${base}assets/7.png`, mobileImg: `${base}assets/mobile/3.png` },
     { name: "Universe Media", tag: "News · Digital Media", url: "universe-media-two.vercel.app", href: "https://universe-media-two.vercel.app/", img: `${base}assets/4.png`, mobileImg: `${base}assets/mobile/4.jpg` },
     { name: "Ishin Academy", tag: "Education · Framer", url: "ishinacademy.framer.website", href: "https://ishinacademy.framer.website/", img: `${base}assets/5.png`, mobileImg: `${base}assets/mobile/5.jpg` },
     { name: "Aurélia", tag: "Beauty · Branding · Web", url: "aureliaesthetics.lovable.app", href: "https://aureliaesthetics.lovable.app/", img: `${base}assets/6.png`, mobileImg: `${base}assets/mobile/6.jpg` },
-    { name: "Oasis Yacht Club", tag: "Luxury · Marine", url: "by0gch-qd.myshopify.com", href: "https://by0gch-qd.myshopify.com/", img: `${base}assets/3.png`, mobileImg: `${base}assets/mobile/3.png` },
+    { name: "Oasis Yacht Club", tag: "Luxury · Marine", url: "by0gch-qd.myshopify.com", href: "https://by0gch-qd.myshopify.com/", img: `${base}assets/3.png`, mobileImg: `${base}assets/mobile/7.jpg` },
   ];
   const visible = projects.slice(0, 6);
   const extra = projects.slice(6);
