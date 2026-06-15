@@ -24,3 +24,9 @@ const html = await response.text()
 const outPath = resolve('dist/client/index.html')
 writeFileSync(outPath, html)
 console.log(`Written ${html.length} bytes to dist/client/index.html`)
+
+// GitHub Pages SPA fallback — serves this for unknown paths so
+// client-side routes (/metrics, /approach, /faq) load correctly
+const fallbackPath = resolve('dist/client/404.html')
+writeFileSync(fallbackPath, html)
+console.log(`Written 404.html fallback for SPA routing`)
