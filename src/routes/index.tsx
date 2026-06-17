@@ -637,8 +637,6 @@ function MobileCarousel({ initial, extra }: { initial: Project[]; extra: Project
   const [interacted, setInteracted] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
-  const projects = showAll ? [...initial, ...extra] : initial;
-
   useEffect(() => {
     const el = carouselRef.current;
     if (!el) return;
@@ -646,20 +644,21 @@ function MobileCarousel({ initial, extra }: { initial: Project[]; extra: Project
       if (!interacted) setInteracted(true);
       const cardW = window.innerWidth * 0.8 + 12;
       const idx = Math.round(el.scrollLeft / cardW);
-      setActiveIdx(Math.max(0, Math.min(idx, projects.length - 1)));
+      setActiveIdx(Math.max(0, Math.min(idx, initial.length - 1)));
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, [interacted, projects.length]);
+  }, [interacted, initial.length]);
 
   return (
     <div className="sm:hidden mt-8 -mx-6">
+      {/* Main carousel — always shows `initial` only */}
       <div
         ref={carouselRef}
         className="flex gap-3 overflow-x-scroll"
         style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingLeft: "10vw", paddingRight: "10vw" } as React.CSSProperties}
       >
-        {projects.map((p, i) => {
+        {initial.map((p, i) => {
           const active = i === activeIdx;
           return (
             <a
@@ -694,7 +693,7 @@ function MobileCarousel({ initial, extra }: { initial: Project[]; extra: Project
 
       {/* Pill progress dots */}
       <div className="flex justify-center items-center gap-1.5 mt-4">
-        {projects.map((_, i) => (
+        {initial.map((_, i) => (
           <span
             key={i}
             style={{
@@ -711,7 +710,7 @@ function MobileCarousel({ initial, extra }: { initial: Project[]; extra: Project
 
       {/* Show more button */}
       {!showAll && extra.length > 0 && (
-        <div className="flex justify-center mt-5">
+        <div className="flex justify-center mt-5 px-6">
           <button
             onClick={() => setShowAll(true)}
             className="inline-flex items-center gap-2 glass-subtle border border-white/[0.10] active:border-accent/40 rounded-full px-6 py-3 text-sm font-mono uppercase tracking-[0.18em] text-muted-foreground"
@@ -719,6 +718,34 @@ function MobileCarousel({ initial, extra }: { initial: Project[]; extra: Project
             {t(lang, "Show more", "Ver más")}
             <span className="text-accent">+{extra.length}</span>
           </button>
+        </div>
+      )}
+
+      {/* Extra projects — 2-column grid below the carousel */}
+      {showAll && extra.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 mt-4 px-6">
+          {extra.map((p) => (
+            <a
+              key={p.name}
+              href={p.href} target="_blank" rel="noopener noreferrer"
+              className="glass rounded-xl overflow-hidden group hover-lift"
+            >
+              <div className="relative aspect-square overflow-hidden">
+                <img
+                  src={p.mobileImg} alt={`${p.name} preview`} loading="lazy"
+                  className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-[1.04] transition-transform duration-500"
+                />
+                <div
+                  className="absolute inset-x-0 bottom-0 px-3 py-3"
+                  style={{ background: "linear-gradient(to top, oklch(0.10 0.01 55 / 0.95) 0%, transparent 65%)" }}
+                >
+                  <h3 className="font-display text-sm text-foreground leading-tight">{p.name}</h3>
+                  <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground mt-0.5">{p.tag}</p>
+                </div>
+                <div className="absolute top-2 right-2 size-6 rounded-full glass-subtle flex items-center justify-center text-muted-foreground text-[10px]">↗</div>
+              </div>
+            </a>
+          ))}
         </div>
       )}
 
@@ -821,8 +848,8 @@ function Work() {
 
         {/* ── MOBILE carousel (hidden on sm+) ── */}
         <MobileCarousel
-          initial={[projects[0], projects[2], projects[6]]}
-          extra={[projects[1], projects[3], projects[4], projects[5]]}
+          initial={[projects[0], projects[2], projects[6], projects[5]]}
+          extra={[projects[1], projects[3], projects[4]]}
         />
 
         {/* ── DESKTOP grid (hidden on mobile) ── */}
