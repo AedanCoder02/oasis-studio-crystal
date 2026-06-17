@@ -871,24 +871,148 @@ function Work() {
   );
 }
 
+/* ---------------- Discovery Modal ---------------- */
+function DiscoveryModal({ onClose }: { onClose: () => void }) {
+  const { lang } = useLang();
+  const [form, setForm] = useState({ name: "", email: "", phone: "", date: "", message: "" });
+  const [sent, setSent] = useState(false);
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const body = [
+      `Name: ${form.name}`,
+      `Phone: ${form.phone}`,
+      `Preferred date: ${form.date}`,
+      form.message ? `Message: ${form.message}` : "",
+    ].filter(Boolean).join("\n");
+    window.open(
+      `mailto:contact@oasistudio.us?subject=${encodeURIComponent("Discovery Call Request")}&body=${encodeURIComponent(body)}`
+    );
+    setSent(true);
+  };
+
+  const fieldCls = "w-full bg-white/[0.04] border border-white/10 rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-accent/50 transition-colors";
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+      <div className="relative glass-strong border border-white/10 rounded-2xl p-6 md:p-8 w-full max-w-md z-10 shadow-2xl">
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 size-7 rounded-full glass-subtle border border-white/[0.07] flex items-center justify-center text-muted-foreground hover:text-foreground text-sm transition-colors"
+        >
+          ×
+        </button>
+
+        {sent ? (
+          <div className="text-center py-6">
+            <div className="size-12 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center mx-auto mb-4 text-accent text-xl">✓</div>
+            <h3 className="font-display text-2xl">{t(lang, "Request sent", "Solicitud enviada")}</h3>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+              {t(lang, "We'll confirm your discovery call within 24 hours.", "Confirmaremos tu discovery call en menos de 24 horas.")}
+            </p>
+            <button onClick={onClose} className="mt-6 text-xs font-mono uppercase tracking-[0.22em] text-accent hover:text-foreground transition-colors">
+              {t(lang, "Close", "Cerrar")}
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="text-[10px] font-mono uppercase tracking-[0.25em] text-accent mb-1">Oasis Studio</div>
+            <h3 className="font-display text-2xl md:text-3xl mb-1">{t(lang, "Book a Discovery Call", "Reservar Discovery Call")}</h3>
+            <p className="text-sm text-muted-foreground mb-6">{t(lang, "30 minutes. Context, ambition and fit.", "30 minutos. Contexto, ambición y encaje.")}</p>
+
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <input
+                required
+                type="text"
+                placeholder={t(lang, "Full name", "Nombre completo")}
+                value={form.name}
+                onChange={set("name")}
+                className={fieldCls}
+              />
+              <input
+                required
+                type="email"
+                placeholder={t(lang, "Email address", "Correo electrónico")}
+                value={form.email}
+                onChange={set("email")}
+                className={fieldCls}
+              />
+              <input
+                required
+                type="tel"
+                placeholder={t(lang, "Phone number", "Número de teléfono")}
+                value={form.phone}
+                onChange={set("phone")}
+                className={fieldCls}
+              />
+              <div className="relative">
+                <input
+                  required
+                  type="date"
+                  value={form.date}
+                  onChange={set("date")}
+                  min={new Date().toISOString().split("T")[0]}
+                  className={`${fieldCls} [color-scheme:dark]`}
+                />
+                {!form.date && (
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground/50">
+                    {t(lang, "Preferred date", "Fecha preferida")}
+                  </span>
+                )}
+              </div>
+              <textarea
+                rows={3}
+                placeholder={t(lang, "Briefly describe your project (optional)", "Describe brevemente tu proyecto (opcional)")}
+                value={form.message}
+                onChange={set("message")}
+                className={`${fieldCls} resize-none`}
+              />
+
+              <button
+                type="submit"
+                className="relative w-full overflow-hidden rounded-md border border-accent/60 text-accent px-6 py-3.5 text-xs font-mono uppercase tracking-[0.22em] hover:bg-accent/10 transition-all group mt-2"
+                style={{ boxShadow: "0 0 30px -8px oklch(0.78 0.09 65 / 0.35)" }}
+              >
+                <span className="relative z-10">{t(lang, "Confirm request", "Confirmar solicitud")}</span>
+                <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                  style={{ background: "linear-gradient(90deg, transparent, oklch(0.78 0.09 65 / 0.12), transparent)" }} />
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- Discovery CTA ---------------- */
 function DiscoveryCTA() {
-
   const { lang } = useLang();
+  const [modalOpen, setModalOpen] = useState(false);
+
   const steps = lang === "en"
     ? [
-        { n: "Step 01", t: "Discovery call", b: "30 minutes. Context, ambition and fit." },
-        { n: "Step 02", t: "Tailored proposal", b: "Scope, team and retainer. Within 5 business days." },
-        { n: "Step 03", t: "Kickoff", b: "Onboarding in 7 days. Month 01 begins." },
+        { n: "Step 01", t: "Discovery call", b: "30 minutes. Context, ambition and fit.",         action: () => setModalOpen(true) },
+        { n: "Step 02", t: "Tailored proposal", b: "Scope, team and retainer. Within 5 business days.", action: () => window.open("mailto:contact@oasistudio.us?subject=Proposal%20Request") },
+        { n: "Step 03", t: "Kickoff",           b: "Onboarding in 7 days. Month 01 begins.",      action: () => window.open("mailto:contact@oasistudio.us?subject=Kickoff%20Inquiry") },
       ]
     : [
-        { n: "Paso 01", t: "Discovery call", b: "30 minutos. Contexto, ambición y encaje." },
-        { n: "Paso 02", t: "Propuesta a medida", b: "Alcance, equipo y retainer. En 5 días hábiles." },
-        { n: "Paso 03", t: "Kickoff", b: "Onboarding en 7 días. Mes 01 comienza." },
+        { n: "Paso 01", t: "Discovery call",      b: "30 minutos. Contexto, ambición y encaje.",          action: () => setModalOpen(true) },
+        { n: "Paso 02", t: "Propuesta a medida",  b: "Alcance, equipo y retainer. En 5 días hábiles.",   action: () => window.open("mailto:contact@oasistudio.us?subject=Solicitud%20de%20propuesta") },
+        { n: "Paso 03", t: "Kickoff",             b: "Onboarding en 7 días. Mes 01 comienza.",           action: () => window.open("mailto:contact@oasistudio.us?subject=Consulta%20Kickoff") },
       ];
   const [sectionRef, sectionVisible] = useScrollVisible(0.05);
   return (
     <section id="contact" className="snap-section relative">
+      {modalOpen && <DiscoveryModal onClose={() => setModalOpen(false)} />}
       <div ref={sectionRef} className="mx-auto max-w-6xl px-6 w-full">
 
         {/* Label + spots — slides up first */}
@@ -947,60 +1071,48 @@ function DiscoveryCTA() {
           <div className="p-4 md:p-6">
             {/* Animated timeline row (desktop only) */}
             <div className="hidden md:block relative mb-5 h-4">
-              {/* Line draws left → right */}
               <div
                 style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: 0,
-                  right: 0,
-                  height: "1px",
-                  marginTop: "-0.5px",
+                  position: "absolute", top: "50%", left: 0, right: 0, height: "1px", marginTop: "-0.5px",
                   transformOrigin: "left center",
                   transform: sectionVisible ? "scaleX(1)" : "scaleX(0)",
                   transition: "transform 0.95s cubic-bezier(0.4,0,0.2,1) 0.5s",
                   background: "linear-gradient(90deg, transparent 4%, oklch(0.78 0.09 65 / 0.45) 14%, oklch(0.78 0.09 65 / 0.6) 50%, oklch(0.78 0.09 65 / 0.45) 86%, transparent 96%)",
                 }}
               />
-              {/* Dots pop in with spring, sequentially */}
               <div className="grid grid-cols-3 gap-4 h-full">
                 {[0, 1, 2].map((j) => (
                   <div key={j} className="flex items-center justify-center">
-                    <span
-                      style={{
-                        display: "block",
-                        width: "10px",
-                        height: "10px",
-                        borderRadius: "50%",
-                        background: "var(--color-accent)",
-                        boxShadow: "0 0 10px var(--color-accent)",
-                        position: "relative",
-                        zIndex: 10,
-                        transform: sectionVisible ? "scale(1)" : "scale(0)",
-                        transition: `transform 0.5s cubic-bezier(0.34,1.56,0.64,1) ${0.6 + j * 0.13}s`,
-                      }}
-                    />
+                    <span style={{
+                      display: "block", width: "10px", height: "10px", borderRadius: "50%",
+                      background: "var(--color-accent)", boxShadow: "0 0 10px var(--color-accent)",
+                      position: "relative", zIndex: 10,
+                      transform: sectionVisible ? "scale(1)" : "scale(0)",
+                      transition: `transform 0.5s cubic-bezier(0.34,1.56,0.64,1) ${0.6 + j * 0.13}s`,
+                    }} />
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Step cards — slot up sequentially */}
+            {/* Step cards — each is now a clickable button */}
             <div className="grid md:grid-cols-3 gap-3 md:gap-4">
               {steps.map((s, i) => (
-                <div
+                <button
                   key={s.n}
+                  onClick={s.action}
                   style={{
                     opacity: sectionVisible ? 1 : 0,
                     transform: sectionVisible ? "translateY(0)" : "translateY(28px)",
                     transition: `opacity 0.65s cubic-bezier(0.2,0.8,0.2,1) ${0.55 + i * 0.13}s, transform 0.65s cubic-bezier(0.2,0.8,0.2,1) ${0.55 + i * 0.13}s`,
                   }}
-                  className="glass rounded-xl p-5 md:p-6 h-full hover-lift group"
+                  className="glass rounded-xl p-5 md:p-6 h-full hover-lift group text-left cursor-pointer"
                 >
                   <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-accent">{s.n}</div>
                   <div className="font-display text-2xl mt-3 group-hover:text-gradient-accent transition-all duration-300">{s.t}</div>
                   <p className="text-muted-foreground text-sm mt-2 leading-relaxed">{s.b}</p>
-                </div>
+                  <div className="mt-4 text-accent text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">→</div>
+                </button>
               ))}
             </div>
           </div>
@@ -1015,19 +1127,17 @@ function DiscoveryCTA() {
           }}
           className="mt-8 flex flex-wrap items-center gap-4"
         >
-          <a
-            href="mailto:hello@oasisstudio.co"
+          <button
+            onClick={() => setModalOpen(true)}
             className="relative overflow-hidden rounded-md border border-accent/60 text-accent px-6 py-3.5 text-xs font-mono uppercase tracking-[0.22em] hover:bg-accent/10 transition-all group"
             style={{ boxShadow: "0 0 30px -8px oklch(0.78 0.09 65 / 0.35)" }}
           >
             <span className="relative z-10">{t(lang, "Book a Discovery Call", "Reservar Discovery Call")}</span>
-            <span
-              className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
-              style={{ background: "linear-gradient(90deg, transparent, oklch(0.78 0.09 65 / 0.12), transparent)" }}
-            />
-          </a>
-          <a href="mailto:hello@oasisstudio.co" className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground transition-colors">
-            hello@oasisstudio.co
+            <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+              style={{ background: "linear-gradient(90deg, transparent, oklch(0.78 0.09 65 / 0.12), transparent)" }} />
+          </button>
+          <a href="mailto:contact@oasistudio.us" className="text-xs font-mono uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground transition-colors">
+            contact@oasistudio.us
           </a>
         </div>
       </div>
@@ -1059,7 +1169,7 @@ function Footer() {
     {
       h: t(lang, "Connect", "Contacto"),
       links: [
-        { l: "hello@oasisstudio.co", href: "mailto:hello@oasisstudio.co" },
+        { l: "contact@oasistudio.us", href: "mailto:contact@oasistudio.us" },
         { l: "Instagram", href: "https://instagram.com" },
         { l: "LinkedIn", href: "https://linkedin.com" },
         { l: "Behance", href: "https://behance.net" },

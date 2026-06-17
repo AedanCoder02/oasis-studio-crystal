@@ -165,7 +165,7 @@ export function Footer() {
     {
       h: t(lang, "Connect", "Contacto"),
       links: [
-        { l: "hello@oasisstudio.co", href: "mailto:hello@oasisstudio.co" },
+        { l: "contact@oasistudio.us", href: "mailto:contact@oasistudio.us" },
         { l: "Instagram",            href: "https://instagram.com"        },
         { l: "LinkedIn",             href: "https://linkedin.com"         },
         { l: "Behance",              href: "https://behance.net"          },
