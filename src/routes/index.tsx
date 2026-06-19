@@ -835,9 +835,7 @@ function Work() {
   return (
     <section id="work" className="snap-section relative">
       <div ref={workRef} className="mx-auto max-w-6xl px-6 w-full">
-        <div style={{ opacity: workVisible ? 1 : 0, transform: workVisible ? "translateY(0)" : "translateY(14px)", transition: "opacity 0.5s ease 0.05s, transform 0.5s ease 0.05s" }}>
-          <SectionLabel>{t(lang, "Selected work", "Trabajo seleccionado")}</SectionLabel>
-        </div>
+
         <h2
           style={{ opacity: workVisible ? 1 : 0, transform: workVisible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.75s cubic-bezier(0.2,0.8,0.2,1) 0.1s, transform 0.75s cubic-bezier(0.2,0.8,0.2,1) 0.1s" }}
           className="font-display text-3xl md:text-5xl tracking-tight max-w-3xl"
@@ -1298,9 +1296,9 @@ function Index() {
         <Nav go={go} scrolled={scrolled} />
         <main ref={scrollerRef} className="snap-page">
           <Hero go={go} scrolled={scrolled} />
+          <Work />
           <Services />
           <DeckSection />
-          <Work />
           <DiscoveryCTA />
           <Footer />
         </main>
