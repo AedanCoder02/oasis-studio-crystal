@@ -848,8 +848,8 @@ function Work() {
 
         {/* ── MOBILE carousel (hidden on sm+) ── */}
         <MobileCarousel
-          initial={[projects[0], projects[1], projects[2], projects[5]]}
-          extra={[projects[3], projects[4], projects[6]]}
+          initial={[projects[0], projects[6], projects[2], projects[5]]}
+          extra={[projects[3], projects[4], projects[1]]}
         />
 
         {/* ── DESKTOP grid (hidden on mobile) ── */}
