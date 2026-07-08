@@ -32,7 +32,7 @@ jobs:
 
       - name: Build
         env:
-          VITE_BASE_PATH: /oasis-studio-crystal/
+          VITE_BASE_PATH: /
         run: bun run build:static
 
       - uses: actions/configure-pages@v4
