@@ -825,9 +825,9 @@ function Work() {
     { name: "Cerebrum", tag: "Education · Cloud Computing", url: "cerebrum-eta-weld.vercel.app", href: "https://cerebrum-eta-weld.vercel.app/", img: `${base}assets/8.png`, mobileImg: `${base}assets/mobile/8.jpg` },
     { name: "Kanu Decor", tag: "E-Commerce · Interior", url: "kanudecor.com", href: "https://kanudecor.com/", img: `${base}assets/7.png`, mobileImg: `${base}assets/mobile/3.png` },
     { name: "Universe Media", tag: "News · Digital Media", url: "universe-media-two.vercel.app", href: "https://universe-media-two.vercel.app/", img: `${base}assets/4.png`, mobileImg: `${base}assets/mobile/4.jpg` },
-    { name: "Ishin Academy", tag: "Education · Framer", url: "ishinacademy.framer.website", href: "https://ishinacademy.framer.website/", img: `${base}assets/5.png`, mobileImg: `${base}assets/mobile/5.jpg` },
+    { name: "Ishin Academy", tag: "Education · Framer", url: "ishinacademy.framer.website", href: "https://ishinacademy.framer.website/", img: `${base}assets/5.png`, mobileImg: `${base}assets/mobile/5.png` },
     { name: "Aurélia", tag: "Beauty · Branding · Web", url: "aureliaesthetics.lovable.app", href: "https://aureliaesthetics.lovable.app/", img: `${base}assets/6.png`, mobileImg: `${base}assets/mobile/6.jpg` },
-    { name: "Oasis Yacht Club", tag: "Luxury · Marine", url: "by0gch-qd.myshopify.com", href: "https://by0gch-qd.myshopify.com/", img: `${base}assets/3.png`, mobileImg: `${base}assets/mobile/5.png` },
+    { name: "Oasis Yacht Club", tag: "Luxury · Marine", url: "by0gch-qd.myshopify.com", href: "https://by0gch-qd.myshopify.com/", img: `${base}assets/3.png`, mobileImg: `${base}assets/mobile/2.png` },
   ];
   const visible = projects.slice(0, 6);
   const extra = projects.slice(6);
@@ -848,7 +848,7 @@ function Work() {
 
         {/* ── MOBILE carousel (hidden on sm+) ── */}
         <MobileCarousel
-          initial={[projects[0], projects[2], projects[5]]}
+          initial={[projects[0], projects[2], projects[6], projects[5]]}
           extra={[projects[3], projects[4], projects[1]]}
         />
 
