@@ -1,10 +1,6 @@
 import { cp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { createRequire } from 'node:module'
-
-// Use esbuild bundled inside Vite (always present)
-const require = createRequire(import.meta.url)
-const esbuild = require('../node_modules/vite/node_modules/esbuild')
+import * as esbuild from 'esbuild'
 
 const out = '.vercel/output'
 
