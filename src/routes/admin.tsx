@@ -7,25 +7,34 @@ export const Route = createFileRoute('/admin')({
   component: AdminPage,
 });
 
-const MONO = { fontFamily: "'JetBrains Mono','Fira Mono','Courier New',monospace" } as const;
+const INTER = { fontFamily: "'Inter', ui-sans-serif, sans-serif" } as const;
+const MONO  = { fontFamily: "'JetBrains Mono','Fira Mono','Courier New',monospace" } as const;
+
+const GLASS: React.CSSProperties = {
+  background: 'oklch(0.28 0.015 65 / 0.6)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+  border: '1px solid oklch(0.95 0.015 75 / 0.1)',
+  boxShadow: '0 1px 0 0 oklch(1 0 0 / 0.08) inset, 0 8px 32px -8px oklch(0 0 0 / 0.4)',
+};
 
 const STAGES: Record<string, { label: string; color: string; bg: string }> = {
-  scraped:        { label: 'SCRAPED',   color: 'rgba(255,255,255,0.4)', bg: 'rgba(255,255,255,0.05)' },
-  analyzed:       { label: 'ANALYZED',  color: 'var(--accent)',          bg: 'rgba(0,229,255,0.08)' },
-  contacted:      { label: 'CONTACTED', color: '#f0b429',               bg: 'rgba(240,180,41,0.08)' },
-  replied:        { label: 'REPLIED',   color: '#a78bfa',               bg: 'rgba(167,139,250,0.08)' },
-  meeting_booked: { label: 'MEETING',   color: '#34d399',               bg: 'rgba(52,211,153,0.08)' },
-  proposal:       { label: 'PROPOSAL',  color: '#60a5fa',               bg: 'rgba(96,165,250,0.08)' },
-  negotiating:    { label: 'NEGOT.',    color: '#fb923c',               bg: 'rgba(251,146,60,0.08)' },
-  closed:         { label: 'CLOSED',    color: '#4ade80',               bg: 'rgba(74,222,128,0.08)' },
-  lost:           { label: 'LOST',      color: '#f87171',               bg: 'rgba(248,113,113,0.08)' },
+  scraped:        { label: 'SCRAPED',   color: 'oklch(0.7 0.015 70)',          bg: 'oklch(0.95 0.015 75 / 0.05)' },
+  analyzed:       { label: 'ANALYZED',  color: 'oklch(0.78 0.09 65)',          bg: 'oklch(0.78 0.09 65 / 0.08)'  },
+  contacted:      { label: 'CONTACTED', color: '#f0b429',                      bg: 'rgba(240,180,41,0.08)'        },
+  replied:        { label: 'REPLIED',   color: '#a78bfa',                      bg: 'rgba(167,139,250,0.08)'       },
+  meeting_booked: { label: 'MEETING',   color: '#34d399',                      bg: 'rgba(52,211,153,0.08)'        },
+  proposal:       { label: 'PROPOSAL',  color: '#60a5fa',                      bg: 'rgba(96,165,250,0.08)'        },
+  negotiating:    { label: 'NEGOT.',    color: '#fb923c',                      bg: 'rgba(251,146,60,0.08)'        },
+  closed:         { label: 'CLOSED',    color: '#4ade80',                      bg: 'rgba(74,222,128,0.08)'        },
+  lost:           { label: 'LOST',      color: '#f87171',                      bg: 'rgba(248,113,113,0.08)'       },
 };
 
 function scoreColor(s: number) {
   if (s >= 80) return '#4ade80';
   if (s >= 60) return '#f0b429';
   if (s >= 40) return '#fb923c';
-  return 'rgba(255,255,255,0.3)';
+  return 'oklch(0.7 0.015 70)';
 }
 
 function relTime(ts: string) {
@@ -117,10 +126,12 @@ function AdminPage() {
   }, [stageFilter, minScore]);
 
   useEffect(() => {
-    runMigrations({ data: undefined }).then(() => {
-      setReady(true);
-      loadLeads();
-    });
+    runMigrations({ data: undefined })
+      .then(() => { setReady(true); loadLeads(); })
+      .catch((err) => {
+        console.error('DB init failed:', err);
+        setReady(true); // Show UI anyway so scraper is accessible
+      });
   }, []);
 
   useEffect(() => { if (ready) loadLeads(); }, [loadLeads, ready]);
@@ -228,7 +239,7 @@ function AdminPage() {
     setGenProposal(lead.id); setProposalMsg(m => ({ ...m, [lead.id]: '' }));
     const win = window.open('', '_blank');
     if (win) {
-      win.document.body.style.cssText = 'background:#050508;color:#e8e8e8;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:13px';
+      win.document.body.style.cssText = 'background:oklch(0.22 0.018 60);color:oklch(0.95 0.015 75);font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:13px';
       win.document.body.textContent = `Generating preview for ${lead.name}...`;
     }
     try {
@@ -270,30 +281,34 @@ function AdminPage() {
 
   function ScrapePanel() {
     const chipStyle = (active: boolean): React.CSSProperties => ({
-      ...MONO, fontSize: 8, padding: '3px 8px', cursor: 'pointer',
-      borderRadius: 3, letterSpacing: '0.08em', border: 'none',
-      background: active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.04)',
-      color:      active ? 'rgba(0,229,255,0.9)' : 'rgba(255,255,255,0.4)',
-      outline:    active ? '1px solid rgba(0,229,255,0.35)' : '1px solid rgba(255,255,255,0.08)',
+      ...INTER, fontSize: 8, padding: '3px 8px', cursor: 'pointer',
+      borderRadius: 4, letterSpacing: '0.06em', border: 'none',
+      background: active ? 'oklch(0.78 0.09 65 / 0.2)' : 'oklch(0.95 0.015 75 / 0.04)',
+      color:      active ? 'oklch(0.78 0.09 65)'       : 'oklch(0.7 0.015 70)',
+      outline:    active ? '1px solid oklch(0.78 0.09 65 / 0.5)' : '1px solid oklch(0.95 0.015 75 / 0.1)',
     });
     const inputStyle: React.CSSProperties = {
-      ...MONO, fontSize: 9, background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3,
-      padding: '6px 10px', color: '#e8e8e8', outline: 'none',
+      ...INTER, fontSize: 9,
+      background: 'oklch(0.95 0.015 75 / 0.08)',
+      border: '1px solid oklch(0.95 0.015 75 / 0.12)',
+      borderRadius: 6,
+      padding: '6px 10px',
+      color: 'oklch(0.95 0.015 75)',
+      outline: 'none',
     };
 
     return (
-      <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 6, padding: '14px 16px', marginBottom: 12 }}>
+      <div style={{ ...GLASS, borderRadius: 8, padding: '14px 16px', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showScrape ? 12 : 0 }}>
-          <div style={{ ...MONO, fontSize: 9, color: 'rgba(0,229,255,0.75)', letterSpacing: '0.14em', fontWeight: 700 }}>◈ GOOGLE MAPS SCRAPER</div>
-          <button onClick={() => setShowScrape(s => !s)} style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.78 0.09 65)', letterSpacing: '0.14em', fontWeight: 700 }}>◈ GOOGLE MAPS SCRAPER</div>
+          <button onClick={() => setShowScrape(s => !s)} style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', background: 'none', border: 'none', cursor: 'pointer' }}>
             {showScrape ? '▴' : '▾'}
           </button>
         </div>
 
         {showScrape && (
           <>
-            <div style={{ ...MONO, fontSize: 7, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: 5 }}>NICHE</div>
+            <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.1em', marginBottom: 5 }}>NICHE</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
               {NICHE_PRESETS.map(n => (
                 <button key={n.value} style={chipStyle(keyword === n.value)} onClick={() => setKeyword(keyword === n.value ? '' : n.value)}>{n.label}</button>
@@ -302,7 +317,7 @@ function AdminPage() {
                 placeholder="Custom niche..." style={{ ...inputStyle, flex: '1 1 120px', fontSize: 8 }} />
             </div>
 
-            <div style={{ ...MONO, fontSize: 7, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: 5 }}>LOCATION</div>
+            <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.1em', marginBottom: 5 }}>LOCATION</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10, alignItems: 'center' }}>
               {COUNTRY_PRESETS.map(c => {
                 const active = location.toLowerCase().includes(c.value.toLowerCase());
@@ -317,17 +332,17 @@ function AdminPage() {
                 style={{ ...inputStyle, flex: '1 1 160px', fontSize: 9 }} />
             </div>
 
-            <div style={{ ...MONO, fontSize: 7, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: 5 }}>FILTERS</div>
+            <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.1em', marginBottom: 5 }}>FILTERS</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 12 }}>
               <button onClick={() => setNoWebsite(v => !v)} style={chipStyle(noWebsiteOnly)}>{noWebsiteOnly ? '✓' : '○'} No website only</button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ ...MONO, fontSize: 8, color: 'rgba(255,255,255,0.35)' }}>Min rating</span>
+                <span style={{ ...INTER, fontSize: 8, color: 'oklch(0.7 0.015 70)' }}>Min rating</span>
                 {[0, 3.5, 4.0, 4.5].map(r => (
                   <button key={r} style={chipStyle(minRating === r)} onClick={() => setMinRating(r)}>{r === 0 ? 'OFF' : `${r}★`}</button>
                 ))}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ ...MONO, fontSize: 8, color: 'rgba(255,255,255,0.35)' }}>Max</span>
+                <span style={{ ...INTER, fontSize: 8, color: 'oklch(0.7 0.015 70)' }}>Max</span>
                 {[5, 10, 20].map(n => (
                   <button key={n} style={chipStyle(scrapeMax === n)} onClick={() => setScrapeMax(n)}>{n}</button>
                 ))}
@@ -336,18 +351,18 @@ function AdminPage() {
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button onClick={handleScrape} disabled={scraping || !location.trim() || !keyword.trim()} style={{
-                ...MONO, fontSize: 9, padding: '7px 18px', cursor: scraping ? 'wait' : 'pointer',
-                background: scraping ? 'rgba(0,229,255,0.06)' : 'rgba(0,229,255,0.12)',
-                border: '1px solid rgba(0,229,255,0.3)',
-                color: scraping ? 'rgba(0,229,255,0.35)' : 'rgba(0,229,255,0.85)',
-                borderRadius: 3, letterSpacing: '0.12em',
+                ...INTER, fontSize: 9, padding: '7px 18px', cursor: scraping ? 'wait' : 'pointer',
+                background: scraping ? 'oklch(0.78 0.09 65 / 0.06)' : 'oklch(0.78 0.09 65 / 0.15)',
+                border: '1px solid oklch(0.78 0.09 65 / 0.35)',
+                color: scraping ? 'oklch(0.78 0.09 65 / 0.35)' : 'oklch(0.78 0.09 65)',
+                borderRadius: 6, letterSpacing: '0.12em',
               }}>{scraping ? '◌ SCRAPING...' : '▶ SCRAPE'}</button>
-              <div style={{ ...MONO, fontSize: 8, color: 'rgba(255,255,255,0.2)' }}>
+              <div style={{ ...INTER, fontSize: 8, color: 'oklch(0.7 0.015 70 / 0.6)' }}>
                 {keyword && location ? `"${keyword}" in ${location}` : 'Select niche + location'}
               </div>
             </div>
             {scrapeMsg && (
-              <div style={{ ...MONO, fontSize: 8, color: scrapeMsg.startsWith('Error') ? '#f87171' : '#4ade80', marginTop: 7, letterSpacing: '0.06em' }}>
+              <div style={{ ...INTER, fontSize: 8, color: scrapeMsg.startsWith('Error') ? '#f87171' : '#4ade80', marginTop: 7, letterSpacing: '0.06em' }}>
                 {scrapeMsg}
               </div>
             )}
@@ -358,44 +373,44 @@ function AdminPage() {
   }
 
   function AutomationBar() {
-    const funnelData = FUNNEL_STAGES.map(s => ({ key: s, label: STAGES[s]?.label ?? s.toUpperCase(), color: STAGES[s]?.color ?? 'rgba(255,255,255,0.3)', count: stageCounts[s] ?? 0 }));
+    const funnelData = FUNNEL_STAGES.map(s => ({ key: s, label: STAGES[s]?.label ?? s.toUpperCase(), color: STAGES[s]?.color ?? 'oklch(0.7 0.015 70)', count: stageCounts[s] ?? 0 }));
     const canEnrich  = leads.filter(l => !!l.website && !l.email).length;
     const canAnalyze = leads.filter(l => l.stage === 'scraped').length;
     const canDraft   = leads.filter(l => (l.stage==='analyzed'||l.stage==='scraped') && !l.outreach_draft).length;
 
     return (
-      <div style={{ background: 'rgba(0,229,255,0.03)', border: '1px solid rgba(0,229,255,0.1)', borderRadius: 4, padding: '10px 14px', marginBottom: 10 }}>
-        <div style={{ ...MONO, fontSize: 7, color: 'rgba(0,229,255,0.5)', letterSpacing: '0.16em', fontWeight: 700, marginBottom: 8 }}>◈ AUTOMATION PIPELINE</div>
+      <div style={{ ...GLASS, borderRadius: 6, padding: '10px 14px', marginBottom: 10 }}>
+        <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.78 0.09 65 / 0.7)', letterSpacing: '0.16em', fontWeight: 700, marginBottom: 8 }}>◈ AUTOMATION PIPELINE</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
           {funnelData.map((f, i) => (
             <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ ...MONO, fontSize: 15, fontWeight: 700, color: f.color, lineHeight: 1 }}>{f.count}</div>
-                <div style={{ ...MONO, fontSize: 6, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em', marginTop: 1 }}>{f.label}</div>
+                <div style={{ ...INTER, fontSize: 6, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.1em', marginTop: 1 }}>{f.label}</div>
               </div>
-              {i < funnelData.length - 1 && <span style={{ ...MONO, fontSize: 8, color: 'rgba(255,255,255,0.15)', margin: '0 2px' }}>→</span>}
+              {i < funnelData.length - 1 && <span style={{ ...INTER, fontSize: 8, color: 'oklch(0.78 0.09 65 / 0.4)', margin: '0 2px' }}>→</span>}
             </div>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
           {[
             { action: 'enrich'  as const, label: '✉ ENRICH ALL',  count: canEnrich,  color: '#34d399' },
-            { action: 'analyze' as const, label: '◎ ANALYZE ALL', count: canAnalyze, color: '#00e5ff' },
+            { action: 'analyze' as const, label: '◎ ANALYZE ALL', count: canAnalyze, color: 'oklch(0.78 0.09 65)' },
             { action: 'draft'   as const, label: '◇ DRAFT ALL',   count: canDraft,   color: '#a78bfa' },
           ].map(({ action, label, count, color }) => (
-            <button key={action} onClick={() => handleBulk(action)} disabled={count === 0 || !!bulkOp} style={{ ...MONO, fontSize: 7, padding: '4px 10px', cursor: count===0||bulkOp?'not-allowed':'pointer', background: count>0?`${color}10`:'transparent', border:`1px solid ${count>0?`${color}40`:'rgba(255,255,255,0.07)'}`, color: count>0?color:'rgba(255,255,255,0.2)', borderRadius: 2, letterSpacing: '0.08em' }}>
+            <button key={action} onClick={() => handleBulk(action)} disabled={count === 0 || !!bulkOp} style={{ ...INTER, fontSize: 7, padding: '4px 10px', cursor: count===0||bulkOp?'not-allowed':'pointer', background: count>0?`${color}18`:'transparent', border:`1px solid ${count>0?`${color}50`:'oklch(0.95 0.015 75 / 0.08)'}`, color: count>0?color:'oklch(0.7 0.015 70)', borderRadius: 4, letterSpacing: '0.08em' }}>
               {label} {count > 0 ? `(${count})` : ''}
             </button>
           ))}
         </div>
         {bulkOp && (
           <div style={{ marginTop: 8 }}>
-            <div style={{ ...MONO, fontSize: 7, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+            <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', marginBottom: 4 }}>
               {bulkOp.action.toUpperCase()} — {bulkOp.done}/{bulkOp.total}
               {bulkOp.errors > 0 && <span style={{ color: '#f87171' }}> · {bulkOp.errors} errors</span>}
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.06)', height: 3, borderRadius: 2 }}>
-              <div style={{ width: `${Math.round((bulkOp.done/bulkOp.total)*100)}%`, height: '100%', borderRadius: 2, background: '#00e5ff', transition: 'width 0.3s ease' }} />
+            <div style={{ background: 'oklch(0.95 0.015 75 / 0.06)', height: 3, borderRadius: 2 }}>
+              <div style={{ width: `${Math.round((bulkOp.done/bulkOp.total)*100)}%`, height: '100%', borderRadius: 2, background: 'oklch(0.78 0.09 65)', transition: 'width 0.3s ease' }} />
             </div>
           </div>
         )}
@@ -408,32 +423,32 @@ function AdminPage() {
     const isSelected = selectedLead?.id === lead.id;
     return (
       <div onClick={() => loadDetail(lead)} style={{
-        borderLeft: `3px solid ${isSelected ? stage.color : 'rgba(255,255,255,0.07)'}`,
-        borderBottom: '1px solid rgba(255,255,255,0.04)',
-        background: isSelected ? `${stage.color}08` : 'transparent',
+        borderLeft: `3px solid ${isSelected ? 'oklch(0.78 0.09 65)' : 'oklch(0.95 0.015 75 / 0.07)'}`,
+        borderBottom: '1px solid oklch(0.95 0.015 75 / 0.05)',
+        background: isSelected ? 'oklch(0.28 0.015 65 / 0.5)' : 'transparent',
         padding: '9px 12px 9px 10px', cursor: 'pointer', transition: 'all 0.1s',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
-          <div style={{ ...MONO, fontSize: 11, fontWeight: 700, color: isSelected ? '#fff' : 'rgba(255,255,255,0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.02em' }}>
+          <div style={{ ...INTER, fontSize: 11, fontWeight: 600, color: isSelected ? 'oklch(0.95 0.015 75)' : 'oklch(0.95 0.015 75 / 0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.01em' }}>
             {lead.name}
           </div>
           <div style={{ ...MONO, fontSize: 15, fontWeight: 700, color: scoreColor(lead.lead_score), flexShrink: 0 }}>{lead.lead_score}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-          <div style={{ ...MONO, fontSize: 8, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          <div style={{ ...INTER, fontSize: 8, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
             {[lead.category?.replace(/_/g, ' '), lead.city].filter(Boolean).join(' · ').toUpperCase()}
           </div>
           <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
             {lead.email         && <span style={{ fontSize: 9, color: '#34d399' }} title="Email found">✉</span>}
             {lead.outreach_sent && <span style={{ fontSize: 9, color: '#f0b429' }} title="Outreach sent">▶</span>}
             {lead.meeting_booked_at && <span style={{ fontSize: 9, color: '#4ade80' }} title="Call booked">★</span>}
-            <span style={{ ...MONO, fontSize: 6, padding: '2px 5px', background: stage.bg, color: stage.color, borderRadius: 2, letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>{stage.label}</span>
+            <span style={{ ...INTER, fontSize: 6, padding: '2px 5px', background: stage.bg, color: stage.color, borderRadius: 3, letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>{stage.label}</span>
           </div>
         </div>
         {(lead.needs ?? []).length > 0 && (
           <div style={{ display: 'flex', gap: 3, marginTop: 5, flexWrap: 'wrap' }}>
             {(lead.needs ?? []).slice(0, 4).map(n => (
-              <span key={n} style={{ ...MONO, fontSize: 6, padding: '1px 4px', background: `${NEEDS_COLORS[n] ?? '#888'}14`, color: NEEDS_COLORS[n] ?? '#888', borderRadius: 2, letterSpacing: '0.07em' }}>
+              <span key={n} style={{ ...INTER, fontSize: 6, padding: '1px 4px', background: `${NEEDS_COLORS[n] ?? '#888'}14`, color: NEEDS_COLORS[n] ?? '#888', borderRadius: 3, letterSpacing: '0.06em' }}>
                 {NEEDS_LABELS[n] ?? n}
               </span>
             ))}
@@ -451,77 +466,77 @@ function AdminPage() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ ...MONO, fontSize: 15, fontWeight: 700, color: '#e8e8e8', letterSpacing: '0.04em', marginBottom: 4 }}>{lead.name}</div>
-            <div style={{ ...MONO, fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em' }}>
+            <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 18, fontWeight: 400, color: 'oklch(0.95 0.015 75)', letterSpacing: '0.01em', marginBottom: 4 }}>{lead.name}</div>
+            <div style={{ ...INTER, fontSize: 10, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.04em' }}>
               {[lead.category, lead.address, lead.city, lead.country].filter(Boolean).join(' · ')}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ ...MONO, fontSize: 28, fontWeight: 700, color: scoreColor(lead.lead_score) }}>{lead.lead_score}</div>
             <button onClick={() => handleAnalyze(lead)} disabled={analyzing === lead.id}
-              style={{ ...MONO, fontSize: 9, padding: '5px 13px', cursor: 'pointer', borderRadius: 2, background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.2)', color: analyzing === lead.id ? 'rgba(0,229,255,0.3)' : 'rgba(0,229,255,0.8)', letterSpacing: '0.07em' }}>
+              style={{ ...INTER, fontSize: 9, padding: '5px 13px', cursor: 'pointer', borderRadius: 6, background: 'oklch(0.78 0.09 65 / 0.15)', border: '1px solid oklch(0.78 0.09 65 / 0.35)', color: analyzing === lead.id ? 'oklch(0.78 0.09 65 / 0.35)' : 'oklch(0.78 0.09 65)', letterSpacing: '0.07em' }}>
               {analyzing === lead.id ? '...' : '◎ ANALYZE'}
             </button>
           </div>
         </div>
 
         {/* Contact */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 6, padding: '12px 16px' }}>
-          <div style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em', marginBottom: 10 }}>CONTACT</div>
+        <div style={{ ...GLASS, borderRadius: 8, padding: '12px 16px' }}>
+          <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em', marginBottom: 10 }}>CONTACT</div>
           {lead.phone && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
-              <span style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.28)', width: 42 }}>TEL</span>
-              <a href={`tel:${lead.phone}`} style={{ ...MONO, fontSize: 11, color: '#4ade80', textDecoration: 'none' }}>{lead.phone}</a>
+              <span style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', width: 42 }}>TEL</span>
+              <a href={`tel:${lead.phone}`} style={{ ...INTER, fontSize: 11, color: '#4ade80', textDecoration: 'none' }}>{lead.phone}</a>
             </div>
           )}
           {lead.email ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
-              <span style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.28)', width: 42 }}>EMAIL</span>
-              <a href={`mailto:${lead.email}`} style={{ ...MONO, fontSize: 11, color: '#60a5fa', textDecoration: 'none' }}>{lead.email}</a>
+              <span style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', width: 42 }}>EMAIL</span>
+              <a href={`mailto:${lead.email}`} style={{ ...INTER, fontSize: 11, color: '#60a5fa', textDecoration: 'none' }}>{lead.email}</a>
             </div>
           ) : lead.website && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
-              <span style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.28)', width: 42 }}>EMAIL</span>
+              <span style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', width: 42 }}>EMAIL</span>
               <button onClick={() => handleEnrich(lead)} disabled={enriching === lead.id}
-                style={{ ...MONO, fontSize: 9, padding: '3px 9px', cursor: 'pointer', borderRadius: 2, background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', color: enriching === lead.id ? 'rgba(52,211,153,0.3)' : 'rgba(52,211,153,0.8)', letterSpacing: '0.07em' }}>
+                style={{ ...INTER, fontSize: 9, padding: '3px 9px', cursor: 'pointer', borderRadius: 6, background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', color: enriching === lead.id ? 'rgba(52,211,153,0.3)' : 'rgba(52,211,153,0.8)', letterSpacing: '0.07em' }}>
                 {enriching === lead.id ? '◌ Searching...' : '✉ FIND EMAIL'}
               </button>
             </div>
           )}
           {lead.website && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
-              <span style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.28)', width: 42 }}>WEB</span>
-              <a href={lead.website} target="_blank" rel="noreferrer" style={{ ...MONO, fontSize: 11, color: '#a78bfa', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 320 }}>
+              <span style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', width: 42 }}>WEB</span>
+              <a href={lead.website} target="_blank" rel="noreferrer" style={{ ...INTER, fontSize: 11, color: '#a78bfa', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 320 }}>
                 {lead.website.replace(/^https?:\/\//, '')}
               </a>
             </div>
           )}
           {lead.google_maps_url && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.28)', width: 42 }}>MAPS</span>
-              <a href={lead.google_maps_url} target="_blank" rel="noreferrer" style={{ ...MONO, fontSize: 11, color: '#fb923c', textDecoration: 'none' }}>Open in Google Maps ↗</a>
+              <span style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', width: 42 }}>MAPS</span>
+              <a href={lead.google_maps_url} target="_blank" rel="noreferrer" style={{ ...INTER, fontSize: 11, color: '#fb923c', textDecoration: 'none' }}>Open in Google Maps ↗</a>
             </div>
           )}
           {!lead.phone && !lead.email && !lead.website && !lead.google_maps_url && (
-            <div style={{ ...MONO, fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>No contact info available</div>
+            <div style={{ ...INTER, fontSize: 10, color: 'oklch(0.7 0.015 70)' }}>No contact info available</div>
           )}
         </div>
 
         {/* Analysis */}
         {lead.analysis_notes && (
-          <div style={{ background: 'rgba(0,229,255,0.04)', border: '1px solid rgba(0,229,255,0.12)', borderRadius: 6, padding: '14px 16px' }}>
-            <div style={{ ...MONO, fontSize: 9, color: 'rgba(0,229,255,0.55)', letterSpacing: '0.12em', marginBottom: 9 }}>ANALYSIS</div>
-            <div style={{ ...MONO, fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.65 }}>{lead.analysis_notes}</div>
+          <div style={{ background: 'oklch(0.78 0.09 65 / 0.06)', border: '1px solid oklch(0.78 0.09 65 / 0.15)', borderRadius: 8, padding: '14px 16px' }}>
+            <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.78 0.09 65 / 0.7)', letterSpacing: '0.12em', marginBottom: 9 }}>ANALYSIS</div>
+            <div style={{ ...INTER, fontSize: 11, color: 'oklch(0.95 0.015 75 / 0.7)', lineHeight: 1.65 }}>{lead.analysis_notes}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 10 }}>
               {(lead.needs ?? []).map(n => (
-                <span key={n} style={{ ...MONO, fontSize: 9, padding: '3px 8px', background: `${NEEDS_COLORS[n] ?? '#888'}18`, color: NEEDS_COLORS[n] ?? '#888', borderRadius: 2, letterSpacing: '0.07em' }}>
+                <span key={n} style={{ ...INTER, fontSize: 9, padding: '3px 8px', background: `${NEEDS_COLORS[n] ?? '#888'}18`, color: NEEDS_COLORS[n] ?? '#888', borderRadius: 4, letterSpacing: '0.06em' }}>
                   {NEEDS_LABELS[n] ?? n}
                 </span>
               ))}
             </div>
             <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
               {[{ label: 'WEBSITE', val: lead.has_website }, { label: 'LIVE CHAT', val: lead.has_chat }, { label: 'BOOKING', val: lead.has_booking }, { label: 'SEO', val: lead.has_seo }].map(({ label, val }) => (
-                <span key={label} style={{ ...MONO, fontSize: 9, padding: '4px 9px', borderRadius: 3, letterSpacing: '0.05em', background: val === null ? 'rgba(255,255,255,0.03)' : val ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.08)', color: val === null ? 'rgba(255,255,255,0.2)' : val ? '#4ade80' : '#f87171', border: `1px solid ${val === null ? 'rgba(255,255,255,0.06)' : val ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.2)'}` }}>
+                <span key={label} style={{ ...INTER, fontSize: 9, padding: '4px 9px', borderRadius: 4, letterSpacing: '0.05em', background: val === null ? 'oklch(0.95 0.015 75 / 0.03)' : val ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.08)', color: val === null ? 'oklch(0.7 0.015 70)' : val ? '#4ade80' : '#f87171', border: `1px solid ${val === null ? 'oklch(0.95 0.015 75 / 0.06)' : val ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.2)'}` }}>
                   {val === null ? '– ' : val ? '✓ HAS ' : 'NO '}{label}
                 </span>
               ))}
@@ -531,10 +546,10 @@ function AdminPage() {
 
         {/* Stage selector */}
         <div>
-          <div style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em', marginBottom: 7 }}>PIPELINE STAGE</div>
+          <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em', marginBottom: 7 }}>PIPELINE STAGE</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {Object.entries(STAGES).map(([key, val]) => (
-              <button key={key} onClick={() => handleStageChange(lead, key)} disabled={savingStage} style={{ ...MONO, fontSize: 9, padding: '4px 10px', cursor: 'pointer', borderRadius: 2, letterSpacing: '0.07em', background: lead.stage === key ? val.bg : 'transparent', border: `1px solid ${lead.stage === key ? val.color : 'rgba(255,255,255,0.08)'}`, color: lead.stage === key ? val.color : 'rgba(255,255,255,0.25)' }}>
+              <button key={key} onClick={() => handleStageChange(lead, key)} disabled={savingStage} style={{ ...INTER, fontSize: 9, padding: '4px 10px', cursor: 'pointer', borderRadius: 4, letterSpacing: '0.06em', background: lead.stage === key ? val.bg : 'transparent', border: `1px solid ${lead.stage === key ? val.color : 'oklch(0.95 0.015 75 / 0.08)'}`, color: lead.stage === key ? val.color : 'oklch(0.7 0.015 70)' }}>
                 {val.label}
               </button>
             ))}
@@ -544,29 +559,29 @@ function AdminPage() {
         {/* Outreach */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <div style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em' }}>OUTREACH</div>
+            <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em' }}>OUTREACH</div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <button onClick={() => handleDraft(lead)} disabled={drafting === lead.id} style={{ ...MONO, fontSize: 9, padding: '5px 11px', cursor: 'pointer', borderRadius: 2, background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)', color: drafting === lead.id ? 'rgba(167,139,250,0.3)' : 'rgba(167,139,250,0.85)', letterSpacing: '0.07em' }}>
+              <button onClick={() => handleDraft(lead)} disabled={drafting === lead.id} style={{ ...INTER, fontSize: 9, padding: '5px 11px', cursor: 'pointer', borderRadius: 6, background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)', color: drafting === lead.id ? 'rgba(167,139,250,0.3)' : 'rgba(167,139,250,0.85)', letterSpacing: '0.06em' }}>
                 {drafting === lead.id ? 'Generating...' : lead.outreach_draft ? '↺ REDRAFT' : '◇ DRAFT EMAIL'}
               </button>
               {lead.outreach_draft && !lead.outreach_sent && (
-                <button onClick={() => handleMarkSent(lead)} style={{ ...MONO, fontSize: 9, padding: '5px 11px', cursor: 'pointer', borderRadius: 2, background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', color: 'rgba(74,222,128,0.85)', letterSpacing: '0.07em' }}>✓ MARK SENT</button>
+                <button onClick={() => handleMarkSent(lead)} style={{ ...INTER, fontSize: 9, padding: '5px 11px', cursor: 'pointer', borderRadius: 6, background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', color: 'rgba(74,222,128,0.85)', letterSpacing: '0.06em' }}>✓ MARK SENT</button>
               )}
-              {lead.outreach_sent && <span style={{ ...MONO, fontSize: 9, color: '#4ade80', letterSpacing: '0.07em' }}>✓ SENT</span>}
+              {lead.outreach_sent && <span style={{ ...INTER, fontSize: 9, color: '#4ade80', letterSpacing: '0.06em' }}>✓ SENT</span>}
             </div>
           </div>
-          {draftMsg[lead.id] && <div style={{ ...MONO, fontSize: 9, color: '#f87171', marginBottom: 6 }}>{draftMsg[lead.id].slice(0, 140)}</div>}
+          {draftMsg[lead.id] && <div style={{ ...INTER, fontSize: 9, color: '#f87171', marginBottom: 6 }}>{draftMsg[lead.id].slice(0, 140)}</div>}
           {lead.outreach_draft ? (
             <>
-              <button onClick={() => setShowDraft(d => !d)} style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 6px', letterSpacing: '0.07em' }}>
+              <button onClick={() => setShowDraft(d => !d)} style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 6px', letterSpacing: '0.06em' }}>
                 {showDraft ? '▾ hide draft' : '▸ show draft'}
               </button>
               {showDraft && (
                 <div style={{ position: 'relative' }}>
-                  <pre style={{ ...MONO, fontSize: 10, color: 'rgba(255,255,255,0.6)', lineHeight: 1.75, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 4, padding: '12px 14px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
+                  <pre style={{ ...INTER, fontSize: 10, color: 'oklch(0.95 0.015 75 / 0.7)', lineHeight: 1.75, background: 'oklch(0.95 0.015 75 / 0.03)', border: '1px solid oklch(0.95 0.015 75 / 0.07)', borderRadius: 6, padding: '12px 14px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
                     {lead.outreach_draft}
                   </pre>
-                  <button onClick={() => copyDraft(lead.outreach_draft!)} style={{ position: 'absolute', top: 7, right: 7, ...MONO, fontSize: 8, padding: '3px 8px', cursor: 'pointer', background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.55)', borderRadius: 2 }}>
+                  <button onClick={() => copyDraft(lead.outreach_draft!)} style={{ position: 'absolute', top: 7, right: 7, ...INTER, fontSize: 8, padding: '3px 8px', cursor: 'pointer', background: 'oklch(0.22 0.018 60 / 0.9)', border: '1px solid oklch(0.95 0.015 75 / 0.15)', color: 'oklch(0.7 0.015 70)', borderRadius: 4 }}>
                     {copyMsg || 'COPY'}
                   </button>
                 </div>
@@ -579,7 +594,7 @@ function AdminPage() {
                 const body = bodyIdx >= 0 ? (lead.outreach_draft ?? '').slice(bodyIdx + 4) : (lead.outreach_draft ?? '');
                 return (
                   <div style={{ marginTop: 8 }}>
-                    <a href={`mailto:${lead.email ?? ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`} style={{ ...MONO, fontSize: 9, padding: '5px 12px', borderRadius: 2, textDecoration: 'none', background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)', color: 'rgba(96,165,250,0.9)', letterSpacing: '0.07em' }}>
+                    <a href={`mailto:${lead.email ?? ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`} style={{ ...INTER, fontSize: 9, padding: '5px 12px', borderRadius: 6, textDecoration: 'none', background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)', color: 'rgba(96,165,250,0.9)', letterSpacing: '0.06em' }}>
                       ✉ OPEN IN EMAIL
                     </a>
                   </div>
@@ -587,22 +602,22 @@ function AdminPage() {
               })()}
             </>
           ) : (
-            <div style={{ ...MONO, fontSize: 10, color: 'rgba(255,255,255,0.2)', fontStyle: 'italic' }}>No draft yet. Analyze first, then Draft Email.</div>
+            <div style={{ ...INTER, fontSize: 10, color: 'oklch(0.7 0.015 70)', fontStyle: 'italic' }}>No draft yet. Analyze first, then Draft Email.</div>
           )}
         </div>
 
         {/* Site Proposal */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <div style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em' }}>SITE PROPOSAL</div>
+            <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em' }}>SITE PROPOSAL</div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-              <button onClick={() => handleProposal(lead)} disabled={generatingProposal === lead.id} style={{ ...MONO, fontSize: 9, padding: '5px 11px', cursor: 'pointer', borderRadius: 2, background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', color: generatingProposal === lead.id ? 'rgba(52,211,153,0.3)' : 'rgba(52,211,153,0.85)', letterSpacing: '0.07em' }}>
+              <button onClick={() => handleProposal(lead)} disabled={generatingProposal === lead.id} style={{ ...INTER, fontSize: 9, padding: '5px 11px', cursor: 'pointer', borderRadius: 6, background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', color: generatingProposal === lead.id ? 'rgba(52,211,153,0.3)' : 'rgba(52,211,153,0.85)', letterSpacing: '0.06em' }}>
                 {generatingProposal === lead.id ? 'Generating...' : '◈ GENERATE PREVIEW'}
               </button>
-              {proposalMsg[lead.id] && <div style={{ ...MONO, fontSize: 8, color: '#f87171', maxWidth: 280 }}>{proposalMsg[lead.id].slice(0, 140)}</div>}
+              {proposalMsg[lead.id] && <div style={{ ...INTER, fontSize: 8, color: '#f87171', maxWidth: 280 }}>{proposalMsg[lead.id].slice(0, 140)}</div>}
             </div>
           </div>
-          <div style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.18)', fontStyle: 'italic' }}>
+          <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', fontStyle: 'italic' }}>
             Generates a personalised website mockup — opens in a new tab.
           </div>
         </div>
@@ -610,38 +625,38 @@ function AdminPage() {
         {/* Notes */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <div style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em' }}>LOG NOTE / CALL / REPLY</div>
-            {noteSuccess && <span style={{ ...MONO, fontSize: 9, color: '#4ade80' }}>✓ Saved</span>}
+            <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em' }}>LOG NOTE / CALL / REPLY</div>
+            {noteSuccess && <span style={{ ...INTER, fontSize: 9, color: '#4ade80' }}>✓ Saved</span>}
           </div>
           <div style={{ display: 'flex', gap: 7 }}>
             <input value={noteInput} onChange={e => setNoteInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleNote(lead)}
               placeholder="e.g. Called — spoke to manager, follow up Friday"
-              style={{ ...MONO, flex: 1, fontSize: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, padding: '6px 10px', color: '#e8e8e8', outline: 'none' }} />
-            <button onClick={() => handleNote(lead)} style={{ ...MONO, fontSize: 9, padding: '6px 12px', cursor: 'pointer', borderRadius: 3, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.07em' }}>ADD</button>
+              style={{ ...INTER, flex: 1, fontSize: 10, background: 'oklch(0.95 0.015 75 / 0.06)', border: '1px solid oklch(0.95 0.015 75 / 0.1)', borderRadius: 6, padding: '6px 10px', color: 'oklch(0.95 0.015 75)', outline: 'none' }} />
+            <button onClick={() => handleNote(lead)} style={{ ...INTER, fontSize: 9, padding: '6px 12px', cursor: 'pointer', borderRadius: 6, background: 'oklch(0.78 0.09 65 / 0.12)', border: '1px solid oklch(0.78 0.09 65 / 0.3)', color: 'oklch(0.78 0.09 65)', letterSpacing: '0.07em' }}>ADD</button>
           </div>
         </div>
 
         {/* Activity Log */}
         <div>
-          <div style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em', marginBottom: 10 }}>
-            ACTIVITY TIMELINE {activities.length > 0 && <span style={{ color: 'rgba(255,255,255,0.18)' }}>({activities.length})</span>}
+          <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em', marginBottom: 10 }}>
+            ACTIVITY TIMELINE {activities.length > 0 && <span style={{ color: 'oklch(0.7 0.015 70 / 0.5)' }}>({activities.length})</span>}
           </div>
           {activities.length === 0 ? (
-            <div style={{ ...MONO, fontSize: 10, color: 'rgba(255,255,255,0.15)', fontStyle: 'italic' }}>No activity yet.</div>
+            <div style={{ ...INTER, fontSize: 10, color: 'oklch(0.7 0.015 70 / 0.6)', fontStyle: 'italic' }}>No activity yet.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {[...activities].reverse().map((a, i) => {
                 const ACT_LABELS: Record<string, string> = { stage_change:'Stage updated', analyzed:'Website analyzed', enriched:'Email found', enrich_failed:'Email not found', draft_generated:'Outreach email drafted', email_sent:'Outreach email sent', note:'', reply_received:'Reply received' };
-                const ACT_COLORS: Record<string, string> = { stage_change:'#60a5fa', analyzed:'#00e5ff', enriched:'#34d399', enrich_failed:'#f87171', draft_generated:'#a78bfa', email_sent:'#f0b429', note:'rgba(255,255,255,0.5)', reply_received:'#4ade80' };
-                const color = ACT_COLORS[a.type] ?? 'rgba(255,255,255,0.3)';
+                const ACT_COLORS: Record<string, string> = { stage_change:'#60a5fa', analyzed:'oklch(0.78 0.09 65)', enriched:'#34d399', enrich_failed:'#f87171', draft_generated:'#a78bfa', email_sent:'#f0b429', note:'oklch(0.7 0.015 70)', reply_received:'#4ade80' };
+                const color = ACT_COLORS[a.type] ?? 'oklch(0.7 0.015 70)';
                 const label = ACT_LABELS[a.type] ?? a.type.replace(/_/g,' ');
                 return (
-                  <div key={a.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingBottom: 10, borderLeft: i < activities.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none', marginLeft: 5, paddingLeft: 12, position: 'relative' }}>
+                  <div key={a.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingBottom: 10, borderLeft: i < activities.length - 1 ? '1px solid oklch(0.95 0.015 75 / 0.07)' : 'none', marginLeft: 5, paddingLeft: 12, position: 'relative' }}>
                     <div style={{ position: 'absolute', left: -4, top: 3, width: 7, height: 7, borderRadius: '50%', background: color }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ ...MONO, fontSize: 10, color, fontWeight: 600 }}>{a.type === 'note' ? 'Note' : label}</div>
-                      {a.content && <div style={{ ...MONO, fontSize: 10, color: 'rgba(255,255,255,0.5)', lineHeight: 1.55, marginTop: 2 }}>{a.content}</div>}
-                      <div style={{ ...MONO, fontSize: 8, color: 'rgba(255,255,255,0.22)', marginTop: 3 }}>{relTime(a.created_at)}</div>
+                      <div style={{ ...INTER, fontSize: 10, color, fontWeight: 600 }}>{a.type === 'note' ? 'Note' : label}</div>
+                      {a.content && <div style={{ ...INTER, fontSize: 10, color: 'oklch(0.95 0.015 75 / 0.6)', lineHeight: 1.55, marginTop: 2 }}>{a.content}</div>}
+                      <div style={{ ...INTER, fontSize: 8, color: 'oklch(0.7 0.015 70 / 0.6)', marginTop: 3 }}>{relTime(a.created_at)}</div>
                     </div>
                   </div>
                 );
@@ -651,7 +666,7 @@ function AdminPage() {
         </div>
 
         {!lead.analysis_notes && (
-          <div style={{ ...MONO, fontSize: 9, color: 'rgba(255,255,255,0.15)', letterSpacing: '0.08em' }}>
+          <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70 / 0.6)', letterSpacing: '0.08em' }}>
             Click ANALYZE to assess this lead's digital presence.
           </div>
         )}
@@ -662,24 +677,24 @@ function AdminPage() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <main style={{ background: '#050508', height: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, ...MONO }}>
+    <main style={{ background: 'transparent', height: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, ...INTER }}>
       {/* Top bar */}
-      <div style={{ padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      <div style={{ ...GLASS, padding: '10px 20px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>
-          <span style={{ fontSize: 9, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.3)', marginRight: 12 }}>OASIS STUDIO · ADMIN</span>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: '#e8e8e8' }}>LEAD ACQUISITION</span>
+          <span style={{ ...INTER, fontSize: 9, letterSpacing: '0.2em', color: 'oklch(0.7 0.015 70)', marginRight: 14, textTransform: 'uppercase' }}>Oasis Studio · Admin</span>
+          <span style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, fontWeight: 400, color: 'oklch(0.95 0.015 75)' }}>LEAD ACQUISITION</span>
         </div>
         <div style={{ display: 'flex', gap: 24 }}>
           {[
-            { label: 'TOTAL', value: totalLeads, color: 'rgba(255,255,255,0.6)' },
+            { label: 'TOTAL', value: totalLeads, color: 'oklch(0.95 0.015 75 / 0.7)' },
             { label: 'HOT', value: hotLeads, color: '#4ade80' },
             { label: 'AVG', value: avgScore, color: scoreColor(avgScore) },
             { label: 'CONTACTED', value: contacted, color: '#f0b429' },
             { label: 'CLOSED', value: stageCounts['closed'] ?? 0, color: '#4ade80' },
           ].map(({ label, value, color }) => (
             <div key={label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
-              <div style={{ fontSize: 7, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em', marginTop: 1 }}>{label}</div>
+              <div style={{ ...MONO, fontSize: 18, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
+              <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em', marginTop: 1 }}>{label}</div>
             </div>
           ))}
         </div>
@@ -688,25 +703,24 @@ function AdminPage() {
       {/* Body */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left column */}
-        <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0, overflowY: 'auto' }}>
+        <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid oklch(0.95 0.015 75 / 0.06)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'oklch(0.22 0.018 60 / 0.3)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+          <div style={{ padding: '10px 12px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.06)', flexShrink: 0, overflowY: 'auto' }}>
             {ready && <ScrapePanel />}
             {ready && <AutomationBar />}
             {/* Stage filter tabs */}
             <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 4 }}>
               {stageOrder.map(s => {
                 const active = stageFilter === s;
-                const st = STAGES[s];
                 const cnt = s === 'all' ? totalLeads : (stageCounts[s] ?? 0);
                 return (
                   <button key={s} onClick={() => setStageFilter(s)} style={{
-                    ...MONO, fontSize: 7, padding: '3px 7px', cursor: 'pointer', flexShrink: 0,
-                    background: active ? (st?.bg ?? 'rgba(255,255,255,0.08)') : 'transparent',
-                    border: `1px solid ${active ? (st?.color ?? 'rgba(255,255,255,0.3)') : 'rgba(255,255,255,0.07)'}`,
-                    color: active ? (st?.color ?? 'rgba(255,255,255,0.7)') : 'rgba(255,255,255,0.25)',
-                    borderRadius: 2, letterSpacing: '0.08em',
+                    ...INTER, fontSize: 7, padding: '3px 7px', cursor: 'pointer', flexShrink: 0,
+                    background: active ? 'oklch(0.78 0.09 65 / 0.2)' : 'transparent',
+                    border: `1px solid ${active ? 'oklch(0.78 0.09 65 / 0.5)' : 'oklch(0.95 0.015 75 / 0.08)'}`,
+                    color: active ? 'oklch(0.78 0.09 65)' : 'oklch(0.7 0.015 70)',
+                    borderRadius: 4, letterSpacing: '0.08em',
                   }}>
-                    {s === 'all' ? 'ALL' : (st?.label ?? s.toUpperCase())} {cnt > 0 ? `(${cnt})` : ''}
+                    {s === 'all' ? 'ALL' : (STAGES[s]?.label ?? s.toUpperCase())} {cnt > 0 ? `(${cnt})` : ''}
                   </button>
                 );
               })}
@@ -715,9 +729,9 @@ function AdminPage() {
           {/* Lead cards */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {!ready ? (
-              <div style={{ textAlign: 'center', padding: '40px 12px', color: 'rgba(255,255,255,0.2)', fontSize: 9 }}>◌ Initialising database...</div>
+              <div style={{ textAlign: 'center', padding: '40px 12px', color: 'oklch(0.7 0.015 70)', fontSize: 9 }}>◌ Initialising database...</div>
             ) : leads.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 12px', color: 'rgba(255,255,255,0.2)', fontSize: 9 }}>No leads. Scrape Google Maps to start.</div>
+              <div style={{ textAlign: 'center', padding: '40px 12px', color: 'oklch(0.7 0.015 70)', fontSize: 9 }}>No leads. Scrape Google Maps to start.</div>
             ) : (
               leads.map(l => <Fragment key={l.id}><LeadCard lead={l} /></Fragment>)
             )}
@@ -728,16 +742,16 @@ function AdminPage() {
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {selectedLead ? (
             <>
-              <div style={{ padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>▸ {selectedLead.name}</span>
-                <span style={{ fontSize: 10, color: STAGES[selectedLead.stage]?.color }}>· {STAGES[selectedLead.stage]?.label}</span>
+              <div style={{ padding: '10px 20px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.06)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, background: 'oklch(0.28 0.015 65 / 0.3)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+                <span style={{ ...INTER, fontSize: 11, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.08em' }}>▸ {selectedLead.name}</span>
+                <span style={{ ...INTER, fontSize: 10, color: STAGES[selectedLead.stage]?.color }}>· {STAGES[selectedLead.stage]?.label}</span>
               </div>
               <div style={{ flex: 1, overflow: 'hidden' }}><DetailPanel lead={selectedLead} /></div>
             </>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10 }}>
-              <div style={{ fontSize: 28, color: 'rgba(255,255,255,0.06)' }}>◈</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em' }}>SELECT A LEAD TO VIEW DETAILS</div>
+              <div style={{ fontSize: 28, color: 'oklch(0.78 0.09 65 / 0.15)' }}>◈</div>
+              <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.15em' }}>SELECT A LEAD TO VIEW DETAILS</div>
             </div>
           )}
         </div>
