@@ -662,7 +662,7 @@ function AdminPage() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <main style={{ background: '#050508', height: '100dvh', display: 'flex', flexDirection: 'column', ...MONO }}>
+    <main style={{ background: '#050508', height: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, ...MONO }}>
       {/* Top bar */}
       <div style={{ padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>
