@@ -4,7 +4,9 @@ import { neon } from '@neondatabase/serverless';
 import type { Lead, Activity } from './leads.types';
 
 function db() {
-  return neon(process.env.AP_NEON_URL!);
+  // Strip channel_binding param — not supported by the neon HTTP driver and causes hangs
+  const url = (process.env.AP_NEON_URL ?? '').replace(/[?&]channel_binding=[^&]*/g, '');
+  return neon(url);
 }
 
 // ── Migrations ──────────────────────────────────────────────────────────────

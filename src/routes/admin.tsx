@@ -126,12 +126,11 @@ function AdminPage() {
   }, [stageFilter, minScore]);
 
   useEffect(() => {
+    const bail = setTimeout(() => setReady(true), 12000); // never hang longer than 12s
     runMigrations({ data: undefined })
-      .then(() => { setReady(true); loadLeads(); })
-      .catch((err) => {
-        console.error('DB init failed:', err);
-        setReady(true); // Show UI anyway so scraper is accessible
-      });
+      .then(() => { clearTimeout(bail); setReady(true); loadLeads(); })
+      .catch((err) => { clearTimeout(bail); console.error('DB init failed:', err); setReady(true); });
+    return () => clearTimeout(bail);
   }, []);
 
   useEffect(() => { if (ready) loadLeads(); }, [loadLeads, ready]);
