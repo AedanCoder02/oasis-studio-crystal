@@ -23,8 +23,7 @@ await esbuild.build({
   external: ['node:*'],
   allowOverwrite: true,
 })
-await writeFile(`${apiDir}/package.json`, JSON.stringify({ type: 'module' }))
-await writeFile(`${apiDir}/.vc-config.json`, JSON.stringify({ runtime: 'nodejs22.x', handler: 'index.js', launchAt: 'request' }))
+await writeFile(`${apiDir}/.vc-config.json`, JSON.stringify({ runtime: 'nodejs20.x', handler: 'index.js' }))
 
 // ── Static SPA ───────────────────────────────────────────────────────────────
 await cp('dist/client', `${out}/static`, { recursive: true })

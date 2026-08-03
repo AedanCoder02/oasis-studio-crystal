@@ -10,12 +10,8 @@ const FIRECRAWL_KEY = () => process.env.FIRECRAWL_API_KEY ?? ''
 const OPENROUTER_KEY = () => process.env.OPENROUTER_API_KEY ?? ''
 const PLACES_KEY = () => process.env.GOOGLE_PLACES_API_KEY ?? process.env.GOOGLE_API_KEY ?? ''
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-  })
-}
+// Returns { data, status } — unpacked by the main handler
+function json(data, status = 200) { return { data, status } }
 
 async function handleMigrate() {
   const sql = db()
@@ -242,29 +238,41 @@ async function handleProposal(id) {
   return json({ html })
 }
 
-export default async function handler(request) {
-  if (request.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' } })
-  let body = null
-  try { body = await request.json() } catch {}
+// Standard Vercel Node.js handler format (req/res) — works with nodejs20.x
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  if (req.method === 'OPTIONS') { res.status(204).end(); return }
 
-  // Vercel rewrites the URL before invoking the function, so path-based routing
-  // is unreliable. Use action + id in the request body instead.
-  const { action, id, ...data } = body ?? {}
+  let body = {}
+  try {
+    const chunks = []
+    for await (const chunk of req) chunks.push(chunk)
+    body = JSON.parse(Buffer.concat(chunks).toString())
+  } catch {}
+
+  const { action, id, ...data } = body
+
+  const dispatch = async () => {
+    if (action === 'migrate') return handleMigrate()
+    if (action === 'list')    return handleList(data)
+    if (action === 'scrape')  return handleScrape(data)
+    if (action === 'get'      && id) return handleGetLead(id)
+    if (action === 'analyze'  && id) return handleAnalyze(id)
+    if (action === 'enrich'   && id) return handleEnrich(id)
+    if (action === 'draft'    && id) return handleDraft(id)
+    if (action === 'update'   && id) return handleUpdate(id, data)
+    if (action === 'activity' && id) return handleActivity(id, data)
+    if (action === 'proposal' && id) return handleProposal(id)
+    return json({ error: `unknown action: ${action}` }, 400)
+  }
 
   try {
-    if (action === 'migrate') return await handleMigrate()
-    if (action === 'list') return await handleList(data)
-    if (action === 'scrape') return await handleScrape(data)
-    if (action === 'get' && id) return await handleGetLead(id)
-    if (action === 'analyze' && id) return await handleAnalyze(id)
-    if (action === 'enrich' && id) return await handleEnrich(id)
-    if (action === 'draft' && id) return await handleDraft(id)
-    if (action === 'update' && id) return await handleUpdate(id, data)
-    if (action === 'activity' && id) return await handleActivity(id, data)
-    if (action === 'proposal' && id) return await handleProposal(id)
-    return json({ error: `unknown action: ${action}` }, 400)
+    const result = await dispatch()
+    res.status(result.status).json(result.data)
   } catch (e) {
     console.error('Leads API error:', e)
-    return json({ error: e.message }, 500)
+    res.status(500).json({ error: e.message })
   }
 }
