@@ -106,9 +106,10 @@ export const scrapeLeads = createServerFn({ method: 'POST' })
     minRating:     z.number().default(0),
   }))
   .handler(async ({ data }) => {
+    try {
     const sql = db();
     const PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY ?? process.env.GOOGLE_API_KEY ?? '';
-    if (!PLACES_KEY) throw new Error('GOOGLE_PLACES_API_KEY not set');
+    if (!PLACES_KEY) return { created: 0, skipped: 0, total: 0, filtered_out: 0, debugError: 'GOOGLE_PLACES_API_KEY not set' };
 
     const textQuery = `${data.keyword} in ${data.location}`;
     const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
@@ -168,7 +169,10 @@ export const scrapeLeads = createServerFn({ method: 'POST' })
       if (lead) created++; else skipped++;
     }
 
-    return { created, skipped, total: places.length, filtered_out: places.length - filtered.length };
+    return { created, skipped, total: places.length, filtered_out: places.length - filtered.length, debugError: null };
+    } catch (e: any) {
+      return { created: 0, skipped: 0, total: 0, filtered_out: 0, debugError: String(e?.message ?? e) };
+    }
   });
 
 // ── Analysis ─────────────────────────────────────────────────────────────────

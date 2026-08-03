@@ -157,6 +157,7 @@ function AdminPage() {
     setScraping(true); setScrapeMsg('');
     try {
       const data = await scrapeLeads({ data: { location: location.trim(), keyword: keyword.trim(), max: scrapeMax, noWebsiteOnly, minRating } });
+      if (data.debugError) { setScrapeMsg(`Debug error: ${data.debugError}`); setScraping(false); return; }
       const filteredNote = data.filtered_out > 0 ? ` · ${data.filtered_out} filtered` : '';
       setScrapeMsg(`Found ${data.total}${filteredNote} — ${data.created} new, ${data.skipped} already in CRM`);
       if (data.created > 0) setStageFilter('scraped');
