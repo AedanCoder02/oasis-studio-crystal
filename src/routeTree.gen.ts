@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as MetricsRouteImport } from './routes/metrics'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ApproachRouteImport } from './routes/approach'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
 const MetricsRoute = MetricsRouteImport.update({
@@ -29,6 +30,11 @@ const ApproachRoute = ApproachRouteImport.update({
   path: '/approach',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/approach': typeof ApproachRoute
   '/faq': typeof FaqRoute
   '/metrics': typeof MetricsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/approach': typeof ApproachRoute
   '/faq': typeof FaqRoute
   '/metrics': typeof MetricsRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/approach': typeof ApproachRoute
   '/faq': typeof FaqRoute
   '/metrics': typeof MetricsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/approach' | '/faq' | '/metrics'
+  fullPaths: '/' | '/admin' | '/approach' | '/faq' | '/metrics'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/approach' | '/faq' | '/metrics'
-  id: '__root__' | '/' | '/approach' | '/faq' | '/metrics'
+  to: '/' | '/admin' | '/approach' | '/faq' | '/metrics'
+  id: '__root__' | '/' | '/admin' | '/approach' | '/faq' | '/metrics'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   ApproachRoute: typeof ApproachRoute
   FaqRoute: typeof FaqRoute
   MetricsRoute: typeof MetricsRoute
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApproachRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   ApproachRoute: ApproachRoute,
   FaqRoute: FaqRoute,
   MetricsRoute: MetricsRoute,
