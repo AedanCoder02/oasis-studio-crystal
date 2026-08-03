@@ -244,28 +244,25 @@ async function handleProposal(id) {
 
 export default async function handler(request) {
   if (request.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' } })
-  const url = new URL(request.url)
-  const path = url.pathname.replace(/^\/api\/leads\/?/, '')
   let body = null
   try { body = await request.json() } catch {}
 
-  try {
-    if (path === 'migrate' || path === '') return await handleMigrate()
-    if (path === 'list') return await handleList(body)
-    if (path === 'scrape') return await handleScrape(body)
+  // Vercel rewrites the URL before invoking the function, so path-based routing
+  // is unreliable. Use action + id in the request body instead.
+  const { action, id, ...data } = body ?? {}
 
-    const idMatch = path.match(/^([a-f0-9-]{36})\/(.+)$/)
-    if (idMatch) {
-      const [, id, action] = idMatch
-      if (action === 'get') return await handleGetLead(id)
-      if (action === 'analyze') return await handleAnalyze(id)
-      if (action === 'enrich') return await handleEnrich(id)
-      if (action === 'draft') return await handleDraft(id)
-      if (action === 'update') return await handleUpdate(id, body)
-      if (action === 'activity') return await handleActivity(id, body)
-      if (action === 'proposal') return await handleProposal(id)
-    }
-    return json({ error: 'not found' }, 404)
+  try {
+    if (action === 'migrate') return await handleMigrate()
+    if (action === 'list') return await handleList(data)
+    if (action === 'scrape') return await handleScrape(data)
+    if (action === 'get' && id) return await handleGetLead(id)
+    if (action === 'analyze' && id) return await handleAnalyze(id)
+    if (action === 'enrich' && id) return await handleEnrich(id)
+    if (action === 'draft' && id) return await handleDraft(id)
+    if (action === 'update' && id) return await handleUpdate(id, data)
+    if (action === 'activity' && id) return await handleActivity(id, data)
+    if (action === 'proposal' && id) return await handleProposal(id)
+    return json({ error: `unknown action: ${action}` }, 400)
   } catch (e) {
     console.error('Leads API error:', e)
     return json({ error: e.message }, 500)
