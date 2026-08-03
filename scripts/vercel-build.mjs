@@ -63,6 +63,9 @@ await writeFile(`${fnDir}/index.js`, [
   `}`,
 ].join('\n'))
 
+// Tell Node.js to treat all .js files in this function as ES modules
+await writeFile(`${fnDir}/package.json`, JSON.stringify({ type: 'module' }))
+
 await writeFile(
   `${fnDir}/.vc-config.json`,
   JSON.stringify({ runtime: 'nodejs22.x', handler: 'index.js', launchAt: 'request' })
