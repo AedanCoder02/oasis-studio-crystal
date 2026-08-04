@@ -159,6 +159,24 @@ function AdminPage() {
   const [minScore]                    = useState(0);
   const [ready, setReady]             = useState(false);
 
+  // Inject mobile-responsive styles once
+  useEffect(() => {
+    const s = document.createElement('style');
+    s.id = 'admin-mobile-css';
+    s.textContent = `
+      @media (max-width: 768px) {
+        .admin-body { flex-direction: column !important; }
+        .admin-left { width: 100% !important; max-height: 55vh !important; border-right: none !important; border-bottom: 1px solid oklch(0.95 0.015 75 / 0.08) !important; }
+        .admin-right { flex: 1 !important; min-height: 0 !important; }
+        .admin-stats { display: none !important; }
+        .admin-topbar { flex-wrap: wrap; gap: 6px; }
+        .admin-back-btn { display: inline-block !important; }
+      }
+    `;
+    if (!document.getElementById('admin-mobile-css')) document.head.appendChild(s);
+    return () => { document.getElementById('admin-mobile-css')?.remove(); };
+  }, []);
+
   // Scrape state
   const [location, setLocation]         = useState('');
   const [keyword, setKeyword]           = useState('');
@@ -775,12 +793,12 @@ function AdminPage() {
   return (
     <main style={{ background: 'transparent', height: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, ...INTER }}>
       {/* Top bar */}
-      <div style={{ ...GLASS, padding: '10px 20px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      <div className="admin-topbar" style={{ ...GLASS, padding: '10px 20px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>
           <span style={{ ...INTER, fontSize: 9, letterSpacing: '0.2em', color: 'oklch(0.7 0.015 70)', marginRight: 14, textTransform: 'uppercase' }}>Oasis Studio · Admin</span>
           <span style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, fontWeight: 400, color: 'oklch(0.95 0.015 75)' }}>LEAD ACQUISITION</span>
         </div>
-        <div style={{ display: 'flex', gap: 24 }}>
+        <div className="admin-stats" style={{ display: 'flex', gap: 24 }}>
           {[
             { label: 'TOTAL', value: totalLeads, color: 'oklch(0.95 0.015 75 / 0.7)' },
             { label: 'HOT', value: hotLeads, color: '#4ade80' },
@@ -797,9 +815,9 @@ function AdminPage() {
       </div>
 
       {/* Body */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="admin-body" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left column — single scrollable container (same pattern as CAIDE-OS) */}
-        <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid oklch(0.95 0.015 75 / 0.06)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'oklch(0.22 0.018 60 / 0.3)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+        <div className="admin-left" style={{ width: 280, flexShrink: 0, borderRight: '1px solid oklch(0.95 0.015 75 / 0.06)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'oklch(0.22 0.018 60 / 0.3)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
 
           {/* Single scrollable body — ScrapePanel + AutomationBar + filter + lead cards all scroll together */}
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -844,10 +862,11 @@ function AdminPage() {
         </div>
 
         {/* Right column */}
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div className="admin-right" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {selectedLead ? (
             <>
               <div style={{ padding: '10px 20px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.06)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, background: 'oklch(0.28 0.015 65 / 0.3)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+                <button onClick={() => setSelectedLead(null)} style={{ ...INTER, fontSize: 10, color: 'oklch(0.7 0.015 70)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px 2px 0', letterSpacing: '0.06em', display: 'none' }} className="admin-back-btn">← Back</button>
                 <span style={{ ...INTER, fontSize: 11, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.08em' }}>▸ {selectedLead.name}</span>
                 <span style={{ ...INTER, fontSize: 10, color: STAGES[selectedLead.stage]?.color }}>· {STAGES[selectedLead.stage]?.label}</span>
               </div>

@@ -166,7 +166,7 @@ async function handleDraft(id) {
   const [lead] = await sql`SELECT * FROM leads WHERE id=${id}`
   if (!lead) return err('not found', 404)
 
-  const BOOKING_URL = process.env.BOOKING_URL ?? ''
+  const BOOKING_URL = process.env.BOOKING_URL ?? 'https://cal.com/oasis-clqi8i/30min'
   const BASE_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://oasis-studio-crystal.vercel.app'
   const proposalUrl = lead.site_proposal ? `${BASE_URL}/api/leads/${id}/proposal` : null
 
@@ -300,18 +300,42 @@ function proposalCTA(category, needs) {
   return 'Get in Touch'
 }
 
+function proposalLayoutStyle(category) {
+  const lower = (category ?? '').toLowerCase()
+  if (lower.includes('restaurant') || lower.includes('cafe') || lower.includes('bistro') || lower.includes('bar') || lower.includes('food'))
+    return { heroAlign: 'center', aboutLayout: 'text-then-stats', mood: 'warm editorial — sensory, intimate, culinary language. Sections alternate: dark hero → warm-cream about → dark menu → light contact.' }
+  if (lower.includes('clinic') || lower.includes('health') || lower.includes('dental') || lower.includes('physio'))
+    return { heroAlign: 'left', aboutLayout: 'two-column-split', mood: 'clean clinical trust — authority signals, reassuring language. White/navy palette with teal accents.' }
+  if (lower.includes('boat') || lower.includes('yacht') || lower.includes('marina') || lower.includes('sailing'))
+    return { heroAlign: 'left', aboutLayout: 'two-column-split', mood: 'luxury maritime — aspirational, escapist, vast whitespace. Deep ocean palette with gold.' }
+  if (lower.includes('hotel') || lower.includes('accommodation') || lower.includes('hostel'))
+    return { heroAlign: 'center', aboutLayout: 'text-then-stats', mood: 'boutique hospitality — experiential, warm luxury. Discover / comfort / memory language.' }
+  if (lower.includes('spa') || lower.includes('wellness') || lower.includes('beauty') || lower.includes('salon'))
+    return { heroAlign: 'center', aboutLayout: 'text-then-stats', mood: 'serene elegance — sensory, restorative language. Soft vertical rhythm between sections.' }
+  if (lower.includes('fitness') || lower.includes('gym') || lower.includes('sport'))
+    return { heroAlign: 'left', aboutLayout: 'two-column-split', mood: 'bold energetic — high contrast, action verbs, transformation language.' }
+  if (lower.includes('law') || lower.includes('legal') || lower.includes('notary') || lower.includes('abogad'))
+    return { heroAlign: 'center', aboutLayout: 'text-then-stats', mood: 'authoritative refined — precise, trustworthy, minimal. Classic serif prominence.' }
+  if (lower.includes('real estate') || lower.includes('inmobil') || lower.includes('property'))
+    return { heroAlign: 'left', aboutLayout: 'two-column-split', mood: 'aspirational spacious — investment and lifestyle language. Premium grid layouts.' }
+  return { heroAlign: 'left', aboutLayout: 'two-column-split', mood: 'confident professional — benefit-focused, modern, direct.' }
+}
+
 function proposalSpecificSection(category, name) {
   const lower = (category ?? '').toLowerCase()
-  if (lower.includes('restaurant') || lower.includes('cafe') || lower.includes('food') || lower.includes('bistro') || lower.includes('bar')) {
-    return `Menu preview: 3 cards in a row — Starters, Signature Dish ("${name} Special"), Desserts. Each card has a category label, dish name, description, and price (€/$ placeholder).`
-  }
-  if (lower.includes('clinic') || lower.includes('health') || lower.includes('dental') || lower.includes('physio')) {
-    return `Services section: 3 service cards — Consultation, Treatment, Follow-up. Each with a unicode icon (◎ ✦ ◈), name, and benefit description.`
-  }
-  if (lower.includes('boat') || lower.includes('yacht') || lower.includes('marina') || lower.includes('sailing')) {
-    return `Fleet section: 3 vessel cards — Day Charter, Ocean Yacht, Private option. Each with type label, vessel name, description, and price/day.`
-  }
-  return `Services section: 3 cards highlighting key offerings relevant to a ${lower} business. Each with a unicode icon, name, and professional description.`
+  if (lower.includes('restaurant') || lower.includes('cafe') || lower.includes('food') || lower.includes('bistro') || lower.includes('bar'))
+    return `MENU SECTION (dark background): label "NUESTRA CARTA" (or language equivalent). 3 cards — Starters, Signature ("${name} Especial", featured with accent border-top), Desserts. Each: category label small-caps, dish name in serif h3, 2-line evocative description, price "desde €XX".`
+  if (lower.includes('clinic') || lower.includes('health') || lower.includes('dental') || lower.includes('physio'))
+    return `SERVICES SECTION (light background): label "OUR EXPERTISE". 3 cards — Consultation (◎), Treatment (✦, featured), Follow-up (◈). Each: large icon in accent color, service name, 2-line patient benefit. Accent top-border on featured.`
+  if (lower.includes('boat') || lower.includes('yacht') || lower.includes('marina') || lower.includes('sailing'))
+    return `FLEET SECTION (dark navy background): label "OUR FLEET". 3 cards — Day Charter, Ocean Yacht (featured: accent border, scale(1.03)), Private Tender. Each: vessel type label, vessel name in serif, 2-line evocative description, "From €XXX/day".`
+  if (lower.includes('spa') || lower.includes('wellness') || lower.includes('beauty') || lower.includes('salon'))
+    return `TREATMENTS SECTION (soft background): label "OUR RITUALS". 3 cards — Relaxation, "${name} Signature" (featured), Rejuvenation. Each: elegant treatment name, sensory 2-line description, duration + price.`
+  if (lower.includes('hotel') || lower.includes('accommodation'))
+    return `ROOMS SECTION: label "YOUR STAY". 3 cards — Classic Room, Superior (featured), Suite. Each: type label, room name, 2-line comfort description, "From €XX/night".`
+  if (lower.includes('fitness') || lower.includes('gym') || lower.includes('sport'))
+    return `PROGRAMS SECTION (dark background): label "TRAIN WITH US". 3 cards — Foundation, Elite (featured), Pro. Each: program name, bold metric, 2-line transformation benefit. High-contrast accent colors.`
+  return `SERVICES SECTION: label "WHAT WE DO". 3 cards — Essential, Signature (featured: accent top-border + scale(1.03)), Premium. Each: unicode icon (◎ ✦ ◈), service name relevant to a ${lower} business, 2-line professional benefit description.`
 }
 
 function buildProposalPrompt(lead) {
@@ -320,45 +344,56 @@ function buildProposalPrompt(lead) {
   const palette  = proposalPalette(category)
   const cta      = proposalCTA(category, needs)
   const rating   = lead.google_rating ? `${lead.google_rating}/5 · ${lead.google_reviews ?? '?'} Google reviews` : null
+  const layout   = proposalLayoutStyle(category)
+  const bookCTA  = 'https://cal.com/oasis-clqi8i/30min'
 
-  return `CRITICAL INSTRUCTION: Output ONLY a valid HTML document. Start immediately with <!DOCTYPE html>. Do not write any explanation, description, markdown, bullet points, or commentary before or after the HTML. Your entire response must be valid HTML that a browser can render directly.
+  return `CRITICAL: Output ONLY valid HTML. Start immediately with <!DOCTYPE html>. No markdown, no explanation, no code fences. Your entire response is a browser-renderable HTML document.
 
-Generate a complete, self-contained HTML website proposal page for a local business. This represents what their website COULD look like — make it genuinely impressive and modern.
+You are generating a WEBSITE PROPOSAL — a polished preview that shows "${lead.name}" what their future website could look like. Make it genuinely impressive and feel built specifically for them, not a generic template.
 
-LANGUAGE: Write ALL text content (headings, paragraphs, buttons, nav links, footer) in the primary language of ${lead.country ?? 'the business location'}. Spain → Spanish. Italy → Italian. France → French. Germany → German. Portugal or Brazil → Portuguese. UK, US, Australia → English. Default to English if unsure.
+LANGUAGE: Every word of visible text must be in the primary language of ${lead.country ?? 'the business country'}. Spain/Mexico/Latin America → Spanish. Italy → Italian. France → French. Germany → German. Portugal/Brazil → Portuguese. UK/US/Australia → English. Default English.
 
-BUSINESS DETAILS:
+BUSINESS:
 - Name: ${lead.name}
 - Type: ${category}
 - Location: ${[lead.city, lead.country].filter(Boolean).join(', ')}
-- Phone: ${lead.phone ?? 'available on request'}
-${rating ? `- Google reputation: ${rating}` : ''}
-${lead.analysis_notes ? `- Current digital situation: ${lead.analysis_notes}` : ''}
+- Phone: ${lead.phone ?? 'available on request'}${rating ? `\n- Reputation: ${rating}` : ''}${lead.analysis_notes ? `\n- Digital situation: ${lead.analysis_notes}` : ''}
 
-DESIGN SPECIFICATION:
-- Color palette: ${palette}
-- Fonts: system stack only — "Georgia, 'Times New Roman', serif" for headings, "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" for body
-- Style: editorial luxury — generous whitespace, large typography, minimal decorative elements
-- Mobile responsive via CSS (max-width: 768px breakpoints)
-- NO external dependencies whatsoever (no CDN, no Google Fonts, no images)
+DESIGN:
+- Palette: ${palette}
+- Hero alignment: ${layout.heroAlign}
+- Mood & voice: ${layout.mood}
+- Fonts: Georgia/'Times New Roman'/serif for headings — system-ui/Segoe UI/sans-serif for body
+- NO external resources (no CDN, no Google Fonts, no images, no JS)
+- Mobile responsive via @media (max-width: 768px)
 
-SECTIONS TO INCLUDE:
-1. Proposal banner: full-width dark bar at very top — "✦ Website preview for ${lead.name} — proposed by Oasis Studio" in small caps, subtle opacity
-2. Navigation: business name left, nav links right (About · ${needs.includes('booking') ? 'Reservations' : 'Services'} · Contact) — sticky, backdrop blur
-3. Hero: large full-viewport-height section, business name as dominant headline (font-size: clamp(3rem, 8vw, 7rem)), a one-line tagline referencing ${lead.city ?? 'their city'}, and a styled CTA button: "${cta}"${rating ? `. Below the button, show "${rating}" as social proof.` : ''}
-4. About: two-column layout — left is a heading + 2 paragraphs about their story in ${lead.city ?? 'the city'}; right is a vertical stat block with 3 credible numbers (years, clients, etc.)
-5. [SPECIFIC SECTION — see below]
-6. Contact: centered section with phone (${lead.phone ?? 'call us'}), address in ${lead.city ?? 'the city'}, and a large "Get in Touch" styled as a mailto link
-7. Footer: business name left, "Website by Oasis Studio" right, copyright bottom
+SECTIONS — build all 8 in order:
 
-SPECIFIC SECTION: ${proposalSpecificSection(category, lead.name)}
+1. TOP BANNER: sticky thin bar (40px) — "✦ Vista previa para ${lead.name} — propuesta por Oasis Studio" (in their language) — dark translucent bg, 10px small-caps, letter-spacing 0.2em, opacity 0.7
 
-CRITICAL CODE REQUIREMENTS:
-- All styles in a single <style> block in <head>
-- Use CSS custom properties (--color-bg, --color-text, --color-accent) for the palette
-- Cards should have subtle border, hover effect via CSS (transform: translateY(-4px), transition)
-- The featured/middle card should be visually distinct (accent border or slight scale)
-- Output ONLY valid HTML starting with <!DOCTYPE html> — no markdown, no explanation, no code fences`
+2. NAV: sticky below banner — left: business name in serif — right: nav links (About · ${needs.includes('booking') ? 'Reservations' : 'Services'} · Contact) — backdrop-filter:blur(12px), semi-transparent bg
+
+3. HERO: full 100vh — ${layout.heroAlign === 'center' ? 'all content centered' : 'text left-aligned, max-width 60%, right side open'} — business name at font-size:clamp(3.5rem,9vw,8rem) in serif — one sharp tagline line referencing ${lead.city ?? 'their city'} and what makes them exceptional — CTA button "${cta}" (accent color, generous padding, no border-radius > 4px)${rating ? ` — social proof line "${rating}" below button` : ''}
+
+4. ABOUT: ${layout.aboutLayout === 'two-column-split' ? 'CSS grid two-column: left = heading + 2 story paragraphs about their history and excellence in ' + (lead.city ?? 'their city') + '; right = 3 bold stat items (years operating, clients served, metric relevant to their type — invent credible numbers)' : 'intro text then a horizontal stat strip with 3 bold numbers below'}
+
+5. ${proposalSpecificSection(category, lead.name)}
+
+6. BOOK A CALL CTA: full-width section with strong contrasting background (use accent color at 15% opacity, border-top accent) — centered — headline in their language ("¿Listo para dar el salto?" or equivalent) — subline ("30 minutos. Sin compromiso." or equivalent) — large CTA button linking to ${bookCTA} (accent bg, white text, padding 16px 40px, border-radius 4px) — open link in _blank
+
+7. CONTACT: centered section — phone, address in ${lead.city ?? 'the city'} — "Escríbenos" / "Get in Touch" as large styled mailto link
+
+8. FOOTER: two-column flex — left: business name + © year — right: <a href="https://oasistudio.us/" target="_blank" style="color:var(--color-accent);text-decoration:none">Website by Oasis Studio</a> — thin border-top, small text
+
+CODE REQUIREMENTS:
+- Single <style> in <head>, all CSS there
+- CSS custom properties: --color-bg, --color-text, --color-accent, --color-border, --color-surface
+- Section alternation: use --color-bg and --color-surface to alternate section backgrounds for visual rhythm
+- Cards: border:1px solid var(--color-border), hover{transform:translateY(-4px);transition:all 0.25s ease}
+- Featured card: border-top:3px solid var(--color-accent), transform:scale(1.03)
+- Sections padding: 100px 0 on desktop, 60px 0 on mobile
+- Container max-width 1100px, margin auto, padding 0 24px
+- Start with <!DOCTYPE html>`
 }
 
 async function handleProposal(id) {
