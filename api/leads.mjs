@@ -314,6 +314,9 @@ export default async function handler(req, res) {
       }
       res.setHeader('Content-Type', 'text/html; charset=utf-8')
       res.setHeader('Cache-Control', 'no-store')
+      // Prevent AI-generated HTML from accessing first-party origin context
+      res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data: https:;")
+      res.setHeader('X-Content-Type-Options', 'nosniff')
       res.status(200).send(lead.site_proposal)
       return
     }
