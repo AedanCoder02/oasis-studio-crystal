@@ -243,6 +243,13 @@ export default async function handler(req, res) {
     if (action === 'update'   && id) return handleUpdate(id, data)
     if (action === 'activity' && id) return handleActivity(id, data)
     if (action === 'proposal' && id) return handleProposal(id)
+    if (action === 'debug') return Promise.resolve(ok({
+      AP_NEON_URL: !!process.env.AP_NEON_URL,
+      GOOGLE_PLACES_API_KEY: process.env.GOOGLE_PLACES_API_KEY?.slice(0, 8) ?? 'NOT SET',
+      GOOGLE_API_KEY: process.env.GOOGLE_API_KEY?.slice(0, 8) ?? 'NOT SET',
+      OPENROUTER_API_KEY: !!process.env.OPENROUTER_API_KEY,
+      FIRECRAWL_API_KEY: !!process.env.FIRECRAWL_API_KEY,
+    }))
     return Promise.resolve(err(`unknown action: ${action}`, 400))
   }
 
