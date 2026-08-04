@@ -1,7 +1,10 @@
 import type { Lead, Activity } from './leads.types';
 
 async function call(action: string, payload?: Record<string, unknown>) {
-  const res = await fetch('/api/leads', {
+  // Use absolute URL — TanStack Start's SPA runtime can relativize path-only
+  // URLs from the current route context (/admin → /admin/api/leads → 405)
+  const base = typeof window !== 'undefined' ? window.location.origin : ''
+  const res = await fetch(`${base}/api/leads`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, ...payload }),
