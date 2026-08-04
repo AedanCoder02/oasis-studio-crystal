@@ -35,8 +35,8 @@ await writeFile(`${out}/config.json`, JSON.stringify({
   version: 3,
   routes: [
     { src: '^/assets/(.*)$', headers: { 'cache-control': 's-maxage=31536000, immutable' }, continue: true },
+    { src: '^/api/leads$', dest: '/api/leads', methods: ['GET', 'POST', 'OPTIONS'] },
     { handle: 'filesystem' },
-    { src: '^/api/leads$', dest: '/api/leads' },
     { src: '/(.*)', dest: '/_shell.html' },
   ],
 }))
