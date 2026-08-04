@@ -165,13 +165,84 @@ async function handleDraft(id) {
   if (!gk) return err('GOOGLE_API_KEY not set', 503)
   const [lead] = await sql`SELECT * FROM leads WHERE id=${id}`
   if (!lead) return err('not found', 404)
+
+  const BOOKING_URL = process.env.BOOKING_URL ?? ''
+  const BASE_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://oasis-studio-crystal.vercel.app'
+  const proposalUrl = lead.site_proposal ? `${BASE_URL}/api/leads?preview=${id}` : null
+
   const country = (lead.country??'').toLowerCase()
-  const signOff = country.includes('spain')||country.includes('mexico')||country.includes('colombia')?'El equipo de Oasis Studio':country.includes('italy')?'Il team di Oasis Studio':country.includes('france')?"L'équipe Oasis Studio":country.includes('germany')?'Das Team von Oasis Studio':country.includes('portugal')||country.includes('brazil')?'A equipa Oasis Studio':'The Oasis Studio Team'
+  const signOff = country.includes('spain')||country.includes('mexico')||country.includes('colombia')||country.includes('argentina')?'El equipo de Oasis Studio'
+    :country.includes('italy')||country.includes('italia')?'Il team di Oasis Studio'
+    :country.includes('france')||country.includes('francia')?"L'équipe Oasis Studio"
+    :country.includes('germany')||country.includes('deutschland')?'Das Team von Oasis Studio'
+    :country.includes('portugal')||country.includes('brazil')||country.includes('brasil')?'A equipa Oasis Studio'
+    :'The Oasis Studio Team'
+
+  const langHint = lead.country
+    ? `Write the ENTIRE email — every sentence, proposal link mention, and sign-off — in the primary language of ${lead.country}. Spain/Spanish-speaking → Spanish. Italy → Italian. France → French. Germany → German. Portugal/Brazil → Portuguese. UK/US/Australia → English. Default to English if unsure.`
+    : 'Write in English.'
+
   const gaps = []
-  if (!lead.has_website) gaps.push('no website')
-  if ((lead.needs??[]).includes('seo')) gaps.push('no SEO')
-  if ((lead.needs??[]).includes('chatbot')) gaps.push('no live chat')
-  const prompt = `Write a cold outreach email for Oasis Studio (boutique digital agency).\nLANGUAGE: Write in the primary language of ${lead.country??'the business country'}. Spain→Spanish, Italy→Italian, France→French, Germany→German, default English.\nLEAD: ${lead.name}, ${lead.category?.replace(/_/g,' ')}, ${[lead.city,lead.country].filter(Boolean).join(', ')}. ${!lead.has_website?'No website.':''} ${lead.google_rating?`${lead.google_rating}/5 stars.`:''} ${lead.analysis_notes??''}\nGaps: ${gaps.join(', ')||'digital presence'}\nVOICE: "we/us/our". Warm, professional. No bullet points. 4 paragraphs. 160-200 words.\nSIGN-OFF: ${signOff}\nFORMAT:\nSUBJECT: <subject>\n---\n<body>`
+  if (lead.has_website === false) gaps.push('no website')
+  if ((lead.needs??[]).includes('seo')) gaps.push('no SEO presence')
+  if ((lead.needs??[]).includes('chatbot')) gaps.push('no live chat or automated contact')
+  if ((lead.needs??[]).includes('booking')) gaps.push('no online booking or reservation system')
+  if ((lead.needs??[]).includes('social_media')) gaps.push('no social media presence')
+
+  const rating = lead.google_rating ? `${lead.google_rating}/5 stars · ${lead.google_reviews??'?'} Google reviews` : null
+
+  const context = [
+    `Business: ${lead.name}`,
+    `Type: ${lead.category?.replace(/_/g,' ')}`,
+    `Location: ${[lead.city,lead.country].filter(Boolean).join(', ')}`,
+    lead.has_website === false ? 'Website: none' : `Website: ${lead.website??'unknown'}`,
+    rating ? `Google reputation: ${rating}` : null,
+    lead.analysis_notes ? `Digital analysis: ${lead.analysis_notes}` : null,
+    gaps.length ? `Current digital gaps (opportunities): ${gaps.join(', ')}` : null,
+    proposalUrl ? `Site preview prepared for them: ${proposalUrl}` : null,
+  ].filter(Boolean).join('\n')
+
+  const prompt = `You are writing a cold outreach email on behalf of Oasis Studio — a boutique digital studio that helps local businesses grow through beautifully crafted websites, SEO, chat automation, and smart digital integrations.
+
+LANGUAGE: ${langHint}
+
+--- LEAD CONTEXT ---
+${context}
+--- END CONTEXT ---
+
+VOICE & TONE:
+- Write as a team: "we", "us", "our" — never "I".
+- You genuinely admire what they've built. Lead with that. Make them feel seen, not sold to.
+- Frame digital gaps as natural next steps for a business at their level — never as failures.
+- Warm, knowledgeable, and professional. Human — not corporate. No jargon.
+- No bullet points or numbered lists. Flowing paragraphs only.
+- Never open with "We hope", "We noticed", "My name is", or "We came across your business".
+
+STRUCTURE — 4 paragraphs:
+- Paragraph 1 (2 sentences): open with something genuine and specific about their reputation or what makes them stand out. Reference their rating, city, or category.
+- Paragraph 2 (2-3 sentences): acknowledge the digital opportunity. Reference their specific gaps (${gaps.length?gaps.join(', '):'digital presence'}) as the natural next step. Be specific.
+- Paragraph 3 (2 sentences): introduce Oasis Studio as the right partner.${proposalUrl?` Then include the site preview naturally in the SAME language: translate and include "We've put together a website preview for ${lead.name} so you can see what's possible — take a look: ${proposalUrl}"`:''}
+- Paragraph 4 (1-2 sentences): soft, warm close. Invite them to a short conversation.${BOOKING_URL?` Include this booking link: ${BOOKING_URL}`:''}
+
+LENGTH: 160-200 words. Substantial enough to feel considered, short enough to be read.
+
+SIGN-OFF: Use exactly: ${signOff}
+
+SUBJECT LINE: intriguing and specific to them — about their potential, not what they're missing.
+
+OUTPUT — return exactly this format, nothing else:
+SUBJECT: <subject line>
+---
+<paragraph 1>
+
+<paragraph 2>
+
+<paragraph 3>
+
+<paragraph 4>
+
+${signOff}`.trim()
+
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${gk}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 2000, temperature: 0.7 } }) })
   const d = await r.json()
   if (!r.ok) return err(`Gemini: ${d.error?.message}`, 502)
@@ -212,7 +283,8 @@ async function handleProposal(id) {
   const cta = needs.includes('booking')||cat.includes('restaurant')?'Reserve a Table':cat.includes('clinic')||cat.includes('dental')?'Book an Appointment':cat.includes('boat')||cat.includes('yacht')?'Explore Our Fleet':'Get in Touch'
   const rating = lead.google_rating?`${lead.google_rating}/5 · ${lead.google_reviews??'?'} reviews`:null
   const prompt = `Output ONLY valid HTML starting with <!DOCTYPE html>. No markdown.\nWebsite proposal for: ${lead.name} (${cat}) in ${[lead.city,lead.country].filter(Boolean).join(', ')}.\nLanguage: primary language of ${lead.country??'business country'}.\nDesign: ${palette}. Georgia serif headings, system sans body. Mobile responsive, no external deps.\nSections: 1) Banner "✦ Website preview for ${lead.name} — proposed by Oasis Studio" 2) Nav 3) Hero full viewport, name clamp(3rem,8vw,7rem), tagline, CTA "${cta}"${rating?`, "${rating}"`:''}  4) About + 3 stats 5) Services 3 cards 6) Contact 7) Footer "Website by Oasis Studio"\nAll styles in <style>. Card hover effects. Start with <!DOCTYPE html>.`
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${gk}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 8000, temperature: 0.8 } }) })
+  // 4000 tokens keeps generation under Vercel's 10s function timeout
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${gk}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 4000, temperature: 0.8 } }) })
   const d = await r.json()
   if (!r.ok) return err(`Gemini: ${d.error?.message}`, 502)
   let html = d.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
@@ -227,8 +299,29 @@ async function handleProposal(id) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Content-Type', 'application/json')
   if (req.method === 'OPTIONS') { res.status(204).end(); return }
+
+  // GET ?preview=ID — serve stored site proposal HTML publicly (for email links)
+  if (req.method === 'GET') {
+    const url = new URL(req.url, 'http://localhost')
+    const id = url.searchParams.get('preview')
+    if (id) {
+      const sql = db()
+      const [lead] = await sql`SELECT site_proposal FROM leads WHERE id=${id}`
+      if (!lead?.site_proposal) {
+        res.status(404).send('<html><body style="background:#050508;color:#e8e8e8;font-family:monospace;padding:40px">No proposal generated yet.</body></html>')
+        return
+      }
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      res.setHeader('Cache-Control', 'no-store')
+      res.status(200).send(lead.site_proposal)
+      return
+    }
+    res.status(400).json({ error: 'missing ?preview=ID' })
+    return
+  }
+
+  res.setHeader('Content-Type', 'application/json')
 
   let body = {}
   try {

@@ -305,18 +305,14 @@ function AdminPage() {
 
   async function handleProposal(lead: Lead) {
     setGenProposal(lead.id); setProposalMsg(m => ({ ...m, [lead.id]: '' }));
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.body.style.cssText = 'background:oklch(0.22 0.018 60);color:oklch(0.95 0.015 75);font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:13px';
-      win.document.body.textContent = `Generating preview for ${lead.name}...`;
-    }
     try {
-      const res = await generateProposal({ data: { id: lead.id } });
-      if (win) { win.document.open(); win.document.write(res.html); win.document.close(); }
+      await generateProposal({ data: { id: lead.id } });
       await loadDetail(lead);
+      // Open the stored proposal via the public GET endpoint
+      const previewUrl = `${window.location.origin}/api/leads?preview=${lead.id}`;
+      window.open(previewUrl, '_blank');
     } catch (e: any) {
-      setProposalMsg(m => ({ ...m, [lead.id]: e.message }));
-      if (win) { win.document.body.style.color = '#f87171'; win.document.body.textContent = `Error: ${e.message}`; }
+      setProposalMsg(m => ({ ...m, [lead.id]: e.message.slice(0, 200) }));
     }
     setGenProposal(null);
   }
