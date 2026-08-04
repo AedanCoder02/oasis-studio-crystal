@@ -269,32 +269,122 @@ async function handleActivity(id, body) {
   return ok({ activity: row })
 }
 
+const PROPOSAL_PALETTE = {
+  restaurant: 'deep burgundy (#2D0A0A) background, cream (#F5F0E8) text, gold (#C9A84C) accents',
+  cafe:       'warm espresso (#1A0F0A) background, ivory (#FAF6F0) text, amber (#D4A853) accents',
+  food:       'rich forest green (#0D1F0D) background, cream (#F5F0E8) text, warm gold (#C9A84C) accents',
+  health:     'deep navy (#0A1628) background, white (#FFFFFF) text, teal (#2DD4BF) accents',
+  clinic:     'deep navy (#0A1628) background, white (#FFFFFF) text, teal (#2DD4BF) accents',
+  dental:     'slate (#0F1923) background, white (#FFFFFF) text, sky blue (#38BDF8) accents',
+  boat:       'deep ocean navy (#060D1A) background, white (#FFFFFF) text, ocean blue (#3B82F6) accents',
+  yacht:      'deep ocean navy (#060D1A) background, white (#FFFFFF) text, gold (#C9A84C) accents',
+  hotel:      'charcoal (#0F0F0F) background, white (#FFFFFF) text, warm gold (#C9A84C) accents',
+  spa:        'deep plum (#1A0A1A) background, cream (#FAF6F0) text, rose gold (#C9A0A0) accents',
+  fitness:    'near-black (#0A0A0A) background, white (#FFFFFF) text, electric blue (#3B82F6) accents',
+}
+
+function proposalPalette(category) {
+  const lower = (category ?? '').toLowerCase()
+  for (const [key, val] of Object.entries(PROPOSAL_PALETTE)) {
+    if (lower.includes(key)) return val
+  }
+  return 'dark slate (#0D1117) background, white (#FFFFFF) text, violet (#8B5CF6) accents'
+}
+
+function proposalCTA(category, needs) {
+  const cat = (category ?? '').toLowerCase()
+  if ((needs ?? []).includes('booking') || cat.includes('restaurant') || cat.includes('cafe')) return 'Reserve a Table'
+  if (cat.includes('clinic') || cat.includes('health') || cat.includes('dental')) return 'Book an Appointment'
+  if (cat.includes('boat') || cat.includes('yacht')) return 'Explore Our Fleet'
+  if (cat.includes('hotel') || cat.includes('accommodation')) return 'Check Availability'
+  return 'Get in Touch'
+}
+
+function proposalSpecificSection(category, name) {
+  const lower = (category ?? '').toLowerCase()
+  if (lower.includes('restaurant') || lower.includes('cafe') || lower.includes('food') || lower.includes('bistro') || lower.includes('bar')) {
+    return `Menu preview: 3 cards in a row — Starters, Signature Dish ("${name} Special"), Desserts. Each card has a category label, dish name, description, and price (€/$ placeholder).`
+  }
+  if (lower.includes('clinic') || lower.includes('health') || lower.includes('dental') || lower.includes('physio')) {
+    return `Services section: 3 service cards — Consultation, Treatment, Follow-up. Each with a unicode icon (◎ ✦ ◈), name, and benefit description.`
+  }
+  if (lower.includes('boat') || lower.includes('yacht') || lower.includes('marina') || lower.includes('sailing')) {
+    return `Fleet section: 3 vessel cards — Day Charter, Ocean Yacht, Private option. Each with type label, vessel name, description, and price/day.`
+  }
+  return `Services section: 3 cards highlighting key offerings relevant to a ${lower} business. Each with a unicode icon, name, and professional description.`
+}
+
+function buildProposalPrompt(lead) {
+  const needs    = lead.needs ?? []
+  const category = (lead.category ?? '').replace(/_/g, ' ')
+  const palette  = proposalPalette(category)
+  const cta      = proposalCTA(category, needs)
+  const rating   = lead.google_rating ? `${lead.google_rating}/5 · ${lead.google_reviews ?? '?'} Google reviews` : null
+
+  return `CRITICAL INSTRUCTION: Output ONLY a valid HTML document. Start immediately with <!DOCTYPE html>. Do not write any explanation, description, markdown, bullet points, or commentary before or after the HTML. Your entire response must be valid HTML that a browser can render directly.
+
+Generate a complete, self-contained HTML website proposal page for a local business. This represents what their website COULD look like — make it genuinely impressive and modern.
+
+LANGUAGE: Write ALL text content (headings, paragraphs, buttons, nav links, footer) in the primary language of ${lead.country ?? 'the business location'}. Spain → Spanish. Italy → Italian. France → French. Germany → German. Portugal or Brazil → Portuguese. UK, US, Australia → English. Default to English if unsure.
+
+BUSINESS DETAILS:
+- Name: ${lead.name}
+- Type: ${category}
+- Location: ${[lead.city, lead.country].filter(Boolean).join(', ')}
+- Phone: ${lead.phone ?? 'available on request'}
+${rating ? `- Google reputation: ${rating}` : ''}
+${lead.analysis_notes ? `- Current digital situation: ${lead.analysis_notes}` : ''}
+
+DESIGN SPECIFICATION:
+- Color palette: ${palette}
+- Fonts: system stack only — "Georgia, 'Times New Roman', serif" for headings, "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" for body
+- Style: editorial luxury — generous whitespace, large typography, minimal decorative elements
+- Mobile responsive via CSS (max-width: 768px breakpoints)
+- NO external dependencies whatsoever (no CDN, no Google Fonts, no images)
+
+SECTIONS TO INCLUDE:
+1. Proposal banner: full-width dark bar at very top — "✦ Website preview for ${lead.name} — proposed by Oasis Studio" in small caps, subtle opacity
+2. Navigation: business name left, nav links right (About · ${needs.includes('booking') ? 'Reservations' : 'Services'} · Contact) — sticky, backdrop blur
+3. Hero: large full-viewport-height section, business name as dominant headline (font-size: clamp(3rem, 8vw, 7rem)), a one-line tagline referencing ${lead.city ?? 'their city'}, and a styled CTA button: "${cta}"${rating ? `. Below the button, show "${rating}" as social proof.` : ''}
+4. About: two-column layout — left is a heading + 2 paragraphs about their story in ${lead.city ?? 'the city'}; right is a vertical stat block with 3 credible numbers (years, clients, etc.)
+5. [SPECIFIC SECTION — see below]
+6. Contact: centered section with phone (${lead.phone ?? 'call us'}), address in ${lead.city ?? 'the city'}, and a large "Get in Touch" styled as a mailto link
+7. Footer: business name left, "Website by Oasis Studio" right, copyright bottom
+
+SPECIFIC SECTION: ${proposalSpecificSection(category, lead.name)}
+
+CRITICAL CODE REQUIREMENTS:
+- All styles in a single <style> block in <head>
+- Use CSS custom properties (--color-bg, --color-text, --color-accent) for the palette
+- Cards should have subtle border, hover effect via CSS (transform: translateY(-4px), transition)
+- The featured/middle card should be visually distinct (accent border or slight scale)
+- Output ONLY valid HTML starting with <!DOCTYPE html> — no markdown, no explanation, no code fences`
+}
+
 async function handleProposal(id) {
   const sql = db()
   const gk = GOOGLE_API_KEY()
   if (!gk) return err('GOOGLE_API_KEY not set', 503)
   const [lead] = await sql`SELECT * FROM leads WHERE id=${id}`
   if (!lead) return err('not found', 404)
-  const cat = (lead.category??'').toLowerCase()
-  const PALETTE = { restaurant:'deep burgundy (#2D0A0A) bg, cream text, gold accents', cafe:'warm espresso bg, ivory text, amber accents', health:'deep navy bg, white text, teal accents', dental:'slate bg, white text, sky blue accents', boat:'ocean navy bg, white text, ocean blue accents', yacht:'ocean navy bg, white text, gold accents', hotel:'charcoal bg, white text, warm gold accents', spa:'deep plum bg, cream text, rose gold accents', fitness:'near-black bg, white text, electric blue accents' }
-  let palette = 'dark slate (#0D1117) bg, white text, violet accents'
-  for (const [k,v] of Object.entries(PALETTE)) { if (cat.includes(k)) { palette = v; break } }
-  const needs = lead.needs ?? []
-  const cta = needs.includes('booking')||cat.includes('restaurant')?'Reserve a Table':cat.includes('clinic')||cat.includes('dental')?'Book an Appointment':cat.includes('boat')||cat.includes('yacht')?'Explore Our Fleet':'Get in Touch'
-  const rating = lead.google_rating?`${lead.google_rating}/5 · ${lead.google_reviews??'?'} reviews`:null
-  const prompt = `Output ONLY valid HTML starting with <!DOCTYPE html>. No markdown.\nWebsite proposal for: ${lead.name} (${cat}) in ${[lead.city,lead.country].filter(Boolean).join(', ')}.\nLanguage: primary language of ${lead.country??'business country'}.\nDesign: ${palette}. Georgia serif headings, system sans body. Mobile responsive, no external deps.\nSections: 1) Banner "✦ Website preview for ${lead.name} — proposed by Oasis Studio" 2) Nav 3) Hero full viewport, name clamp(3rem,8vw,7rem), tagline, CTA "${cta}"${rating?`, "${rating}"`:''}  4) About + 3 stats 5) Services 3 cards 6) Contact 7) Footer "Website by Oasis Studio"\nAll styles in <style>. Card hover effects. Start with <!DOCTYPE html>.`
-  // 4000 tokens keeps generation under Vercel's 10s function timeout
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${gk}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 4000, temperature: 0.8 } }) })
+
+  const prompt = buildProposalPrompt(lead)
+  // gemini-3.5-flash at 4000 tokens fits within Vercel's 10s function limit
+  const r = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${gk}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 4000, temperature: 0.8 } }) }
+  )
   const d = await r.json()
-  if (!r.ok) return err(`Gemini: ${d.error?.message}`, 502)
+  if (!r.ok) return err(`Gemini: ${d.error?.message ?? JSON.stringify(d).slice(0, 200)}`, 502)
   let html = d.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  html = html.replace(/^```html\n?/i,'').replace(/\n?```$/i,'')
+  if (!html) return err('Empty response from model', 502)
+  html = html.replace(/^```html\n?/i, '').replace(/\n?```$/i, '')
   const di = html.search(/<!DOCTYPE/i)
   if (di > 0) html = html.slice(di)
   html = html.trim()
   try { await sql`UPDATE leads SET site_proposal=${html},updated_at=NOW() WHERE id=${id}` } catch {}
-  await sql`INSERT INTO lead_activities (lead_id,type,content) VALUES (${id},'note','Site proposal generated')`
-  return ok({ html })
+  await sql`INSERT INTO lead_activities (lead_id,type,content) VALUES (${id},'note','Site proposal preview generated')`
+  return ok({ ok: true })
 }
 
 export default async function handler(req, res) {

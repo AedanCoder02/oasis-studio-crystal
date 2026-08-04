@@ -305,13 +305,27 @@ function AdminPage() {
 
   async function handleProposal(lead: Lead) {
     setGenProposal(lead.id); setProposalMsg(m => ({ ...m, [lead.id]: '' }));
+    // Open window synchronously before any await — browsers block window.open after async gaps
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.body.style.cssText = 'background:#050508;color:#e8e8e8;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:13px;letter-spacing:.1em';
+      const msg = win.document.createElement('p');
+      msg.textContent = `◈ Generating preview for ${lead.name}...`;
+      win.document.body.appendChild(msg);
+    }
     try {
       await generateProposal({ data: { id: lead.id } });
       await loadDetail(lead);
-      // Open the stored proposal via the public GET endpoint
       const previewUrl = `${window.location.origin}/api/leads?preview=${lead.id}`;
-      window.open(previewUrl, '_blank');
+      if (win) win.location.href = previewUrl;
+      else window.open(previewUrl, '_blank');
     } catch (e: any) {
+      if (win) {
+        win.document.body.style.cssText = 'background:#050508;color:#f87171;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:13px;letter-spacing:.1em;padding:40px;box-sizing:border-box;text-align:center';
+        const errP = win.document.createElement('p');
+        errP.textContent = `Error: ${String(e.message).slice(0, 200)}`;
+        win.document.body.replaceChildren(errP);
+      }
       setProposalMsg(m => ({ ...m, [lead.id]: e.message.slice(0, 200) }));
     }
     setGenProposal(null);

@@ -26,6 +26,7 @@ await esbuild.build({
 await writeFile(`${fnDir}/.vc-config.json`, JSON.stringify({
   runtime: 'nodejs20.x',
   handler: 'index.js',
+  maxDuration: 30,
 }))
 
 // ── Static SPA ───────────────────────────────────────────────────────────────
