@@ -8,7 +8,14 @@ function db() {
 const GOOGLE_API_KEY = () => process.env.GOOGLE_API_KEY ?? ''
 const FIRECRAWL_KEY  = () => process.env.FIRECRAWL_API_KEY ?? ''
 const OPENROUTER_KEY = () => process.env.OPENROUTER_API_KEY ?? ''
-const PLACES_KEY     = () => process.env.GOOGLE_PLACES_API_KEY ?? process.env.GOOGLE_API_KEY ?? ''
+// Pick whichever key is a Maps Platform key (AIza prefix) for Places API
+const PLACES_KEY = () => {
+  const k1 = process.env.GOOGLE_PLACES_API_KEY ?? ''
+  const k2 = process.env.GOOGLE_API_KEY ?? ''
+  if (k1.startsWith('AIza')) return k1
+  if (k2.startsWith('AIza')) return k2
+  return k1 || k2
+}
 
 function ok(data)         { return { data, status: 200 } }
 function err(msg, status) { return { data: { error: msg }, status } }
