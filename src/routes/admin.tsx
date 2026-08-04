@@ -305,28 +305,46 @@ function AdminPage() {
 
   async function handleProposal(lead: Lead) {
     setGenProposal(lead.id); setProposalMsg(m => ({ ...m, [lead.id]: '' }));
-    // Open window synchronously before any await — browsers block window.open after async gaps
+    // Open window synchronously before any await — browsers only allow this from a direct click handler
     const win = window.open('', '_blank');
     if (win) {
-      win.document.body.style.cssText = 'background:#050508;color:#e8e8e8;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:13px;letter-spacing:.1em';
+      win.document.body.style.cssText = 'background:#050508;color:#e8e8e8;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:14px;letter-spacing:.1em';
       const msg = win.document.createElement('p');
       msg.textContent = `◈ Generating preview for ${lead.name}...`;
       win.document.body.appendChild(msg);
     }
     try {
-      await generateProposal({ data: { id: lead.id } });
-      await loadDetail(lead);
-      const previewUrl = `${window.location.origin}/api/leads/${lead.id}/proposal`;
-      if (win) win.location.href = previewUrl;
-      else window.open(previewUrl, '_blank');
+      // Direct fetch — same pattern as CAIDE-OS, avoids wrapper swallowing error details
+      const base = window.location.origin;
+      const res = await fetch(`${base}/api/leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'proposal', id: lead.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        const msg = data.error ?? `HTTP ${res.status}`;
+        if (win) {
+          win.document.body.style.cssText = 'background:#1a0505;color:#f87171;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:16px;letter-spacing:.05em;padding:40px;box-sizing:border-box;text-align:center';
+          const errP = win.document.createElement('p');
+          errP.textContent = `Error: ${msg}`;
+          win.document.body.replaceChildren(errP);
+        }
+        setProposalMsg(m => ({ ...m, [lead.id]: msg.slice(0, 200) }));
+      } else {
+        // Navigate the already-open window to the stable GET URL — same as CAIDE-OS
+        if (win) win.location.href = `${base}/api/leads/${lead.id}/proposal`;
+        await loadDetail(lead);
+      }
     } catch (e: any) {
+      const msg = String(e.message).slice(0, 200);
       if (win) {
-        win.document.body.style.cssText = 'background:#050508;color:#f87171;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:13px;letter-spacing:.1em;padding:40px;box-sizing:border-box;text-align:center';
+        win.document.body.style.cssText = 'background:#1a0505;color:#f87171;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:16px;letter-spacing:.05em;padding:40px;box-sizing:border-box;text-align:center';
         const errP = win.document.createElement('p');
-        errP.textContent = `Error: ${String(e.message).slice(0, 200)}`;
+        errP.textContent = `Error: ${msg}`;
         win.document.body.replaceChildren(errP);
       }
-      setProposalMsg(m => ({ ...m, [lead.id]: e.message.slice(0, 200) }));
+      setProposalMsg(m => ({ ...m, [lead.id]: msg }));
     }
     setGenProposal(null);
   }

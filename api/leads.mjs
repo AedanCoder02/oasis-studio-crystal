@@ -369,10 +369,10 @@ async function handleProposal(id) {
   if (!lead) return err('not found', 404)
 
   const prompt = buildProposalPrompt(lead)
-  // gemini-3.5-flash at 4000 tokens fits within Vercel's 10s function limit
+  // gemini-3.6-flash at 8000 tokens — matches CAIDE-OS. maxDuration:30 gives headroom.
   const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${gk}`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 4000, temperature: 0.8 } }) }
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${gk}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 8000, temperature: 0.8 } }) }
   )
   const d = await r.json()
   if (!r.ok) return err(`Gemini: ${d.error?.message ?? JSON.stringify(d).slice(0, 200)}`, 502)
