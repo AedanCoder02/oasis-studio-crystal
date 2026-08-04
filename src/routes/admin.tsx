@@ -4,8 +4,76 @@ import { runMigrations, getLeads, getLead, scrapeLeads, analyzeLead, enrichLead,
 import type { Lead, Activity, BulkOp, StageCounts } from '../lib/api/leads.types';
 
 export const Route = createFileRoute('/admin')({
-  component: AdminPage,
+  component: AdminGate,
 });
+
+const SESSION_KEY = 'oas_admin_auth';
+const VALID_EMAIL = 'oasistudio2725@gmail.com';
+const VALID_PASS  = 'Oasis2725$';
+
+function AdminGate() {
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem(SESSION_KEY) === '1');
+  if (!authed) return <LoginScreen onSuccess={() => setAuthed(true)} />;
+  return <AdminPage />;
+}
+
+function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
+  const [email, setEmail]     = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError]     = useState('');
+  const [loading, setLoading] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setTimeout(() => {
+      if (email.trim() === VALID_EMAIL && password === VALID_PASS) {
+        sessionStorage.setItem(SESSION_KEY, '1');
+        onSuccess();
+      } else {
+        setError('Invalid credentials.');
+        setLoading(false);
+      }
+    }, 400);
+  }
+
+  const inp: React.CSSProperties = {
+    ...({ fontFamily: "'Inter', ui-sans-serif, sans-serif" } as const),
+    width: '100%', boxSizing: 'border-box',
+    background: 'oklch(0.95 0.015 75 / 0.06)',
+    border: '1px solid oklch(0.95 0.015 75 / 0.12)',
+    borderRadius: 8, padding: '11px 14px',
+    color: 'oklch(0.95 0.015 75)', fontSize: 14, outline: 'none',
+  };
+
+  return (
+    <main style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', ui-sans-serif, sans-serif" }}>
+      <form onSubmit={handleSubmit} style={{ width: 360, background: 'oklch(0.28 0.015 65 / 0.7)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid oklch(0.95 0.015 75 / 0.1)', borderRadius: 16, padding: '40px 36px', boxShadow: '0 1px 0 0 oklch(1 0 0 / 0.08) inset, 0 20px 60px -10px oklch(0 0 0 / 0.5)' }}>
+        <div style={{ marginBottom: 32, textAlign: 'center' }}>
+          <div style={{ fontSize: 10, letterSpacing: '0.22em', color: 'oklch(0.7 0.015 70)', marginBottom: 6 }}>OASIS STUDIO</div>
+          <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 24, color: 'oklch(0.95 0.015 75)', letterSpacing: '0.02em' }}>Admin Access</div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: 'oklch(0.7 0.015 70)', marginBottom: 6 }}>EMAIL</label>
+            <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} required autoFocus style={inp} placeholder="your@email.com" />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: 'oklch(0.7 0.015 70)', marginBottom: 6 }}>PASSWORD</label>
+            <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} required style={inp} placeholder="••••••••" />
+          </div>
+
+          {error && <div style={{ fontSize: 12, color: 'oklch(0.6 0.2 25)', letterSpacing: '0.04em' }}>{error}</div>}
+
+          <button type="submit" disabled={loading} style={{ marginTop: 8, width: '100%', padding: '12px', background: loading ? 'oklch(0.78 0.09 65 / 0.3)' : 'oklch(0.78 0.09 65 / 0.2)', border: '1px solid oklch(0.78 0.09 65 / 0.5)', borderRadius: 8, color: 'oklch(0.78 0.09 65)', fontSize: 13, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em', cursor: loading ? 'wait' : 'pointer', transition: 'all 0.15s' }}>
+            {loading ? '...' : 'ENTER'}
+          </button>
+        </div>
+      </form>
+    </main>
+  );
+}
 
 const INTER = { fontFamily: "'Inter', ui-sans-serif, sans-serif" } as const;
 const MONO  = { fontFamily: "'JetBrains Mono','Fira Mono','Courier New',monospace" } as const;
