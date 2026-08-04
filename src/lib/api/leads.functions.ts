@@ -1,12 +1,18 @@
 import type { Lead, Activity } from './leads.types';
 
+function getAdminToken(): string {
+  try { return sessionStorage.getItem('oas_admin_token') ?? '' } catch { return '' }
+}
+
 async function call(action: string, payload?: Record<string, unknown>) {
-  // Use absolute URL — TanStack Start's SPA runtime can relativize path-only
-  // URLs from the current route context (/admin → /admin/api/leads → 405)
   const base = typeof window !== 'undefined' ? window.location.origin : ''
+  const token = getAdminToken()
   const res = await fetch(`${base}/api/leads`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify({ action, ...payload }),
   })
   if (!res.ok) {

@@ -8,8 +8,7 @@ export const Route = createFileRoute('/admin')({
 });
 
 const SESSION_KEY = 'oas_admin_auth';
-const VALID_EMAIL = 'oasistudio2725@gmail.com';
-const VALID_PASS  = 'Oasis2725$';
+const TOKEN_KEY   = 'oas_admin_token';
 
 function AdminGate() {
   const [authed, setAuthed] = useState(() => sessionStorage.getItem(SESSION_KEY) === '1');
@@ -18,23 +17,32 @@ function AdminGate() {
 }
 
 function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
-  const [email, setEmail]     = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError]     = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      if (email.trim() === VALID_EMAIL && password === VALID_PASS) {
+    try {
+      const res = await fetch(`${window.location.origin}/api/leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'auth', password }),
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        sessionStorage.setItem(TOKEN_KEY, data.token);
         sessionStorage.setItem(SESSION_KEY, '1');
         onSuccess();
       } else {
         setError('Invalid credentials.');
-        setLoading(false);
       }
-    }, 400);
+    } catch {
+      setError('Connection error. Try again.');
+    }
+    setLoading(false);
   }
 
   const inp: React.CSSProperties = {

@@ -423,8 +423,22 @@ async function handleProposal(id) {
   return ok({ ok: true })
 }
 
+function isAuthorized(req) {
+  const token = process.env.ADMIN_TOKEN
+  if (!token) return true // no token set = open (local dev)
+  return req.headers['authorization'] === `Bearer ${token}`
+}
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  // Restrict CORS to same-origin or explicit allowlist
+  const origin = req.headers['origin'] ?? ''
+  const allowed = (process.env.ALLOWED_ORIGINS ?? '').split(',').map(s => s.trim()).filter(Boolean)
+  if (allowed.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Vary', 'Origin')
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   if (req.method === 'OPTIONS') { res.status(204).end(); return }
 
   // GET /api/leads/{id}/proposal — serve stored site proposal HTML (CAIDE-OS compatible URL)
@@ -461,6 +475,21 @@ export default async function handler(req, res) {
 
   const { action, id, ...data } = body
 
+  // Auth endpoint — no token required, validates password against server-side ADMIN_TOKEN
+  if (action === 'auth') {
+    const token = process.env.ADMIN_TOKEN
+    if (!token) { res.status(200).json({ token: 'dev' }); return } // dev mode
+    if (data.password !== token) { res.status(401).json({ error: 'unauthorized' }); return }
+    res.status(200).json({ token })
+    return
+  }
+
+  // All other actions require a valid Bearer token
+  if (!isAuthorized(req)) {
+    res.status(401).json({ error: 'unauthorized' })
+    return
+  }
+
   const dispatch = () => {
     if (action === 'migrate') return handleMigrate()
     if (action === 'list')    return handleList(data)
@@ -480,6 +509,6 @@ return Promise.resolve(err(`unknown action: ${action}`, 400))
     res.status(result.status).json(result.data)
   } catch (e) {
     console.error('Leads API error:', e)
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: 'internal error' })
   }
 }
