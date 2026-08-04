@@ -380,6 +380,7 @@ async function handleProposal(id) {
   if (!html) return err('Empty response from model', 502)
   html = html.replace(/^```html\n?/i, '').replace(/\n?```$/i, '')
   const di = html.search(/<!DOCTYPE/i)
+  if (di < 0) return err('Model returned invalid output (no <!DOCTYPE). Try regenerating.', 502)
   if (di > 0) html = html.slice(di)
   html = html.trim()
   try { await sql`UPDATE leads SET site_proposal=${html},updated_at=NOW() WHERE id=${id}` } catch {}
