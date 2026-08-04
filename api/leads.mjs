@@ -470,7 +470,7 @@ export default async function handler(req, res) {
     if (action === 'enrich'   && id) return handleEnrich(id)
     if (action === 'draft'    && id) return handleDraft(id)
     if (action === 'update'   && id) return handleUpdate(id, data)
-    if (action === 'activity' && id) return handleActivity(id, data)
+    if (action === 'activity' && (id || data.leadId)) return handleActivity(id ?? data.leadId, data)
     if (action === 'proposal' && id) return handleProposal(id)
 return Promise.resolve(err(`unknown action: ${action}`, 400))
   }
