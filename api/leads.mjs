@@ -168,7 +168,7 @@ async function handleDraft(id) {
 
   const BOOKING_URL = process.env.BOOKING_URL ?? ''
   const BASE_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://oasis-studio-crystal.vercel.app'
-  const proposalUrl = lead.site_proposal ? `${BASE_URL}/api/leads?preview=${id}` : null
+  const proposalUrl = lead.site_proposal ? `${BASE_URL}/api/leads/${id}/proposal` : null
 
   const country = (lead.country??'').toLowerCase()
   const signOff = country.includes('spain')||country.includes('mexico')||country.includes('colombia')||country.includes('argentina')?'El equipo de Oasis Studio'
@@ -391,10 +391,12 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   if (req.method === 'OPTIONS') { res.status(204).end(); return }
 
-  // GET ?preview=ID — serve stored site proposal HTML publicly (for email links)
+  // GET /api/leads/{id}/proposal — serve stored site proposal HTML (CAIDE-OS compatible URL)
   if (req.method === 'GET') {
     const url = new URL(req.url, 'http://localhost')
-    const id = url.searchParams.get('preview')
+    // Support both path-based (/api/leads/{id}/proposal) and legacy query (?preview=ID)
+    const pathMatch = url.pathname.match(/^\/api\/leads\/([^/]+)\/proposal$/)
+    const id = pathMatch ? pathMatch[1] : url.searchParams.get('preview')
     if (id) {
       const sql = db()
       const [lead] = await sql`SELECT site_proposal FROM leads WHERE id=${id}`
@@ -404,13 +406,12 @@ export default async function handler(req, res) {
       }
       res.setHeader('Content-Type', 'text/html; charset=utf-8')
       res.setHeader('Cache-Control', 'no-store')
-      // Prevent AI-generated HTML from accessing first-party origin context
       res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data: https:;")
       res.setHeader('X-Content-Type-Options', 'nosniff')
       res.status(200).send(lead.site_proposal)
       return
     }
-    res.status(400).json({ error: 'missing ?preview=ID' })
+    res.status(400).json({ error: 'missing ID' })
     return
   }
 

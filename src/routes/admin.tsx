@@ -316,7 +316,7 @@ function AdminPage() {
     try {
       await generateProposal({ data: { id: lead.id } });
       await loadDetail(lead);
-      const previewUrl = `${window.location.origin}/api/leads?preview=${lead.id}`;
+      const previewUrl = `${window.location.origin}/api/leads/${lead.id}/proposal`;
       if (win) win.location.href = previewUrl;
       else window.open(previewUrl, '_blank');
     } catch (e: any) {
