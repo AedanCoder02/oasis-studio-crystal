@@ -342,9 +342,13 @@ function AdminPage() {
     try {
       // Direct fetch — same pattern as CAIDE-OS, avoids wrapper swallowing error details
       const base = window.location.origin;
+      const token = sessionStorage.getItem('oas_admin_token') ?? '';
       const res = await fetch(`${base}/api/leads`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ action: 'proposal', id: lead.id }),
       });
       const data = await res.json();
