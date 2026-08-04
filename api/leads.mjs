@@ -394,9 +394,8 @@ export default async function handler(req, res) {
   // GET /api/leads/{id}/proposal — serve stored site proposal HTML (CAIDE-OS compatible URL)
   if (req.method === 'GET') {
     const url = new URL(req.url, 'http://localhost')
-    // Support both path-based (/api/leads/{id}/proposal) and legacy query (?preview=ID)
-    const pathMatch = url.pathname.match(/^\/api\/leads\/([^/]+)\/proposal$/)
-    const id = pathMatch ? pathMatch[1] : url.searchParams.get('preview')
+    // _id injected by Vercel route capture group ($1), preview= is legacy fallback
+    const id = url.searchParams.get('_id') || url.searchParams.get('preview')
     if (id) {
       const sql = db()
       const [lead] = await sql`SELECT site_proposal FROM leads WHERE id=${id}`
