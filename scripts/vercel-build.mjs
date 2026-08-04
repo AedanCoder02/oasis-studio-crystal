@@ -1,4 +1,4 @@
-import { cp, mkdir, writeFile, rm, readFile } from 'node:fs/promises'
+import { cp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import * as esbuild from 'esbuild'
 
@@ -31,17 +31,6 @@ await writeFile(`${fnDir}/.vc-config.json`, JSON.stringify({
 // ── Static SPA ───────────────────────────────────────────────────────────────
 await cp('dist/client', `${out}/static`, { recursive: true })
 
-// Strip prerendered route-match data from _shell.html.
-// TanStack Start injects SSR route state for "/" into _shell.html during build.
-// When React hydrates any other route (e.g. /admin), it finds mismatched DOM
-// content, throws error #418, and the recovery sometimes hits unexpected 405s.
-// Removing the prerendered match state forces a clean client-side render on
-// every route — correct behaviour for a SPA.
-const shellPath = `${out}/static/_shell.html`
-let shell = await readFile(shellPath, 'utf8')
-shell = shell.replace(/\$_TSR\.router=\([^;]+\);\$_TSR\.e\(\);document\.currentScript\.remove\(\)/g,
-  '$_TSR.e();document.currentScript.remove()')
-await writeFile(shellPath, shell)
 
 await writeFile(`${out}/config.json`, JSON.stringify({
   version: 3,
