@@ -704,7 +704,7 @@ function AdminPage() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left column */}
         <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid oklch(0.95 0.015 75 / 0.06)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'oklch(0.22 0.018 60 / 0.3)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
-          <div style={{ padding: '10px 12px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.06)', flexShrink: 0, overflowY: 'auto' }}>
+          <div style={{ padding: '10px 12px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.06)', flexShrink: 0, overflowY: 'auto', maxHeight: '55%' }}>
             {ready && <ScrapePanel />}
             {ready && <AutomationBar />}
             {/* Stage filter tabs */}
