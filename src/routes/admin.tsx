@@ -96,7 +96,7 @@ function AdminPage() {
   const [keyword, setKeyword]           = useState('');
   const [scraping, setScraping]         = useState(false);
   const [scrapeMsg, setScrapeMsg]       = useState('');
-  const [showScrape, setShowScrape]     = useState(true);
+  const [showScrape, setShowScrape]     = useState(false);
   const [scrapeMax, setScrapeMax]       = useState(20);
   const [noWebsiteOnly, setNoWebsite]   = useState(false);
   const [minRating, setMinRating]       = useState(0);
@@ -702,13 +702,20 @@ function AdminPage() {
 
       {/* Body */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left column */}
+        {/* Left column — single scrollable container (same pattern as CAIDE-OS) */}
         <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid oklch(0.95 0.015 75 / 0.06)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'oklch(0.22 0.018 60 / 0.3)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
-          <div style={{ padding: '10px 12px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.06)', flexShrink: 0, overflowY: 'auto', maxHeight: '55%' }}>
-            {ready && <ScrapePanel />}
-            {ready && <AutomationBar />}
-            {/* Stage filter tabs */}
-            <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 4 }}>
+
+          {/* Single scrollable body — ScrapePanel + AutomationBar + filter + lead cards all scroll together */}
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+
+            {/* Scrape + automation */}
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.06)', flexShrink: 0 }}>
+              {ready && <ScrapePanel />}
+              {ready && <AutomationBar />}
+            </div>
+
+            {/* Stage filter */}
+            <div style={{ padding: '8px 12px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.06)', display: 'flex', gap: 4, overflowX: 'auto', flexShrink: 0 }}>
               {stageOrder.map(s => {
                 const active = stageFilter === s;
                 const cnt = s === 'all' ? totalLeads : (stageCounts[s] ?? 0);
@@ -725,16 +732,18 @@ function AdminPage() {
                 );
               })}
             </div>
-          </div>
-          {/* Lead cards */}
-          <div style={{ flex: 1, overflowY: 'auto' }}>
-            {!ready ? (
-              <div style={{ textAlign: 'center', padding: '40px 12px', color: 'oklch(0.7 0.015 70)', fontSize: 9 }}>◌ Initialising database...</div>
-            ) : leads.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 12px', color: 'oklch(0.7 0.015 70)', fontSize: 9 }}>No leads. Scrape Google Maps to start.</div>
-            ) : (
-              leads.map(l => <Fragment key={l.id}><LeadCard lead={l} /></Fragment>)
-            )}
+
+            {/* Lead cards */}
+            <div style={{ padding: '6px 8px' }}>
+              {!ready ? (
+                <div style={{ textAlign: 'center', padding: '40px 12px', color: 'oklch(0.7 0.015 70)', fontSize: 9 }}>◌ Initialising database...</div>
+              ) : leads.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 12px', color: 'oklch(0.7 0.015 70)', fontSize: 9 }}>No leads. Scrape Google Maps to start.</div>
+              ) : (
+                leads.map(l => <Fragment key={l.id}><LeadCard lead={l} /></Fragment>)
+              )}
+            </div>
+
           </div>
         </div>
 
