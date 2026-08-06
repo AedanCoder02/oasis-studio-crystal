@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect, useCallback, Fragment } from 'react';
-import { runMigrations, getLeads, getLead, scrapeLeads, analyzeLead, enrichLead, draftOutreach, updateLead, addActivity, generateProposal } from '../lib/api/leads.functions';
+import { runMigrations, getLeads, getLead, scrapeLeads, analyzeLead, enrichLead, draftOutreach, updateLead, addActivity, sendOutreach } from '../lib/api/leads.functions';
 import type { Lead, Activity, BulkOp, StageCounts } from '../lib/api/leads.types';
 
 export const Route = createFileRoute('/admin')({
@@ -11,7 +11,10 @@ const SESSION_KEY = 'oas_admin_auth';
 const TOKEN_KEY   = 'oas_admin_token';
 
 function AdminGate() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem(SESSION_KEY) === '1');
+  // Require both session flag AND token — old sessions without token force re-login
+  const [authed, setAuthed] = useState(() =>
+    sessionStorage.getItem(SESSION_KEY) === '1' && !!sessionStorage.getItem(TOKEN_KEY)
+  );
   if (!authed) return <LoginScreen onSuccess={() => setAuthed(true)} />;
   return <AdminPage />;
 }
@@ -61,7 +64,6 @@ function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
           <div style={{ fontSize: 10, letterSpacing: '0.22em', color: 'oklch(0.7 0.015 70)', marginBottom: 6 }}>OASIS STUDIO</div>
           <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 24, color: 'oklch(0.95 0.015 75)', letterSpacing: '0.02em' }}>Admin Access</div>
         </div>
-
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: 'oklch(0.7 0.015 70)', marginBottom: 6 }}>EMAIL</label>
@@ -71,9 +73,7 @@ function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
             <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: 'oklch(0.7 0.015 70)', marginBottom: 6 }}>PASSWORD</label>
             <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} required style={inp} placeholder="••••••••" />
           </div>
-
           {error && <div style={{ fontSize: 12, color: 'oklch(0.6 0.2 25)', letterSpacing: '0.04em' }}>{error}</div>}
-
           <button type="submit" disabled={loading} style={{ marginTop: 8, width: '100%', padding: '12px', background: loading ? 'oklch(0.78 0.09 65 / 0.3)' : 'oklch(0.78 0.09 65 / 0.2)', border: '1px solid oklch(0.78 0.09 65 / 0.5)', borderRadius: 8, color: 'oklch(0.78 0.09 65)', fontSize: 13, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em', cursor: loading ? 'wait' : 'pointer', transition: 'all 0.15s' }}>
             {loading ? '...' : 'ENTER'}
           </button>
@@ -95,15 +95,15 @@ const GLASS: React.CSSProperties = {
 };
 
 const STAGES: Record<string, { label: string; color: string; bg: string }> = {
-  scraped:        { label: 'SCRAPED',   color: 'oklch(0.7 0.015 70)',          bg: 'oklch(0.95 0.015 75 / 0.05)' },
-  analyzed:       { label: 'ANALYZED',  color: 'oklch(0.78 0.09 65)',          bg: 'oklch(0.78 0.09 65 / 0.08)'  },
-  contacted:      { label: 'CONTACTED', color: '#f0b429',                      bg: 'rgba(240,180,41,0.08)'        },
-  replied:        { label: 'REPLIED',   color: '#a78bfa',                      bg: 'rgba(167,139,250,0.08)'       },
-  meeting_booked: { label: 'MEETING',   color: '#34d399',                      bg: 'rgba(52,211,153,0.08)'        },
-  proposal:       { label: 'PROPOSAL',  color: '#60a5fa',                      bg: 'rgba(96,165,250,0.08)'        },
-  negotiating:    { label: 'NEGOT.',    color: '#fb923c',                      bg: 'rgba(251,146,60,0.08)'        },
-  closed:         { label: 'CLOSED',    color: '#4ade80',                      bg: 'rgba(74,222,128,0.08)'        },
-  lost:           { label: 'LOST',      color: '#f87171',                      bg: 'rgba(248,113,113,0.08)'       },
+  scraped:        { label: 'SCRAPED',   color: 'oklch(0.7 0.015 70)',  bg: 'oklch(0.95 0.015 75 / 0.05)' },
+  analyzed:       { label: 'ANALYZED',  color: 'oklch(0.78 0.09 65)', bg: 'oklch(0.78 0.09 65 / 0.08)'  },
+  contacted:      { label: 'CONTACTED', color: '#f0b429',             bg: 'rgba(240,180,41,0.08)'        },
+  replied:        { label: 'REPLIED',   color: '#a78bfa',             bg: 'rgba(167,139,250,0.08)'       },
+  meeting_booked: { label: 'MEETING',   color: '#34d399',             bg: 'rgba(52,211,153,0.08)'        },
+  proposal:       { label: 'PROPOSAL',  color: '#60a5fa',             bg: 'rgba(96,165,250,0.08)'        },
+  negotiating:    { label: 'NEGOT.',    color: '#fb923c',             bg: 'rgba(251,146,60,0.08)'        },
+  closed:         { label: 'CLOSED',    color: '#4ade80',             bg: 'rgba(74,222,128,0.08)'        },
+  lost:           { label: 'LOST',      color: '#f87171',             bg: 'rgba(248,113,113,0.08)'       },
 };
 
 function scoreColor(s: number) {
@@ -124,18 +124,18 @@ function relTime(ts: string) {
 }
 
 const NICHE_PRESETS = [
-  { label: 'Restaurants',       value: 'restaurants' },
-  { label: 'Cafes & Bars',      value: 'cafes and bars' },
-  { label: 'Dental Clinics',    value: 'dental clinics' },
-  { label: 'Hair Salons',       value: 'hair salons' },
-  { label: 'Yoga & Fitness',    value: 'yoga and fitness studios' },
-  { label: 'Hotels & B&B',      value: 'hotels and bed and breakfast' },
+  { label: 'Restaurants',          value: 'restaurants' },
+  { label: 'Cafes & Bars',         value: 'cafes and bars' },
+  { label: 'Dental Clinics',       value: 'dental clinics' },
+  { label: 'Hair Salons',          value: 'hair salons' },
+  { label: 'Yoga & Fitness',       value: 'yoga and fitness studios' },
+  { label: 'Hotels & B&B',         value: 'hotels and bed and breakfast' },
   { label: 'Boat & Yacht Charter', value: 'boat and yacht charter' },
-  { label: 'Real Estate',       value: 'real estate agencies' },
-  { label: 'Veterinary',        value: 'veterinary clinics' },
-  { label: 'Spas & Wellness',   value: 'spas and wellness centers' },
-  { label: 'Law Firms',         value: 'law firms' },
-  { label: 'Auto Repair',       value: 'auto repair shops' },
+  { label: 'Real Estate',          value: 'real estate agencies' },
+  { label: 'Veterinary',           value: 'veterinary clinics' },
+  { label: 'Spas & Wellness',      value: 'spas and wellness centers' },
+  { label: 'Law Firms',            value: 'law firms' },
+  { label: 'Auto Repair',          value: 'auto repair shops' },
 ];
 
 const COUNTRY_PRESETS = [
@@ -160,14 +160,126 @@ const NEEDS_COLORS: Record<string, string> = {
 
 const FUNNEL_STAGES = ['scraped','analyzed','contacted','meeting_booked','closed'] as const;
 
+// ── ScrapePanel — module-level to prevent re-definition on each AdminPage render.
+// When defined as a closure inside AdminPage, React sees a new function component
+// on every render → unmount/remount → input focus lost on every keystroke.
+interface ScrapePanelProps {
+  keyword: string;        setKeyword: React.Dispatch<React.SetStateAction<string>>;
+  location: string;       setLocation: React.Dispatch<React.SetStateAction<string>>;
+  showScrape: boolean;    setShowScrape: React.Dispatch<React.SetStateAction<boolean>>;
+  scraping: boolean;
+  scrapeMax: number;      setScrapeMax: React.Dispatch<React.SetStateAction<number>>;
+  noWebsiteOnly: boolean; setNoWebsite: React.Dispatch<React.SetStateAction<boolean>>;
+  minRating: number;      setMinRating: React.Dispatch<React.SetStateAction<number>>;
+  onScrape: () => void;   scrapeMsg: string;
+}
+
+function ScrapePanel({ keyword, setKeyword, location, setLocation, showScrape, setShowScrape, scraping, scrapeMax, setScrapeMax, noWebsiteOnly, setNoWebsite, minRating, setMinRating, onScrape, scrapeMsg }: ScrapePanelProps) {
+  const chipStyle = (active: boolean): React.CSSProperties => ({
+    ...INTER, fontSize: 8, padding: '3px 8px', cursor: 'pointer',
+    borderRadius: 4, letterSpacing: '0.06em', border: 'none',
+    background: active ? 'oklch(0.78 0.09 65 / 0.2)' : 'oklch(0.95 0.015 75 / 0.04)',
+    color:      active ? 'oklch(0.78 0.09 65)'       : 'oklch(0.7 0.015 70)',
+    outline:    active ? '1px solid oklch(0.78 0.09 65 / 0.5)' : '1px solid oklch(0.95 0.015 75 / 0.1)',
+  });
+  const inputStyle: React.CSSProperties = {
+    ...INTER, fontSize: 9,
+    background: 'oklch(0.95 0.015 75 / 0.08)',
+    border: '1px solid oklch(0.95 0.015 75 / 0.12)',
+    borderRadius: 6, padding: '6px 10px',
+    color: 'oklch(0.95 0.015 75)', outline: 'none',
+  };
+
+  return (
+    <div style={{ ...GLASS, borderRadius: 8, padding: '14px 16px', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showScrape ? 12 : 0 }}>
+        <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.78 0.09 65)', letterSpacing: '0.14em', fontWeight: 700 }}>◈ GOOGLE MAPS SCRAPER</div>
+        <button onClick={() => setShowScrape(s => !s)} style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          {showScrape ? '▴' : '▾'}
+        </button>
+      </div>
+
+      {showScrape && (
+        <>
+          <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.1em', marginBottom: 5 }}>NICHE</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+            {NICHE_PRESETS.map(n => (
+              <button key={n.value} style={chipStyle(keyword === n.value)} onClick={() => setKeyword(keyword === n.value ? '' : n.value)}>{n.label}</button>
+            ))}
+            <input
+              value={NICHE_PRESETS.some(n => n.value === keyword) ? '' : keyword}
+              onChange={e => setKeyword(e.target.value)}
+              placeholder="Custom niche..."
+              style={{ ...inputStyle, flex: '1 1 120px', fontSize: 8 }}
+            />
+          </div>
+
+          <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.1em', marginBottom: 5 }}>LOCATION</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10, alignItems: 'center' }}>
+            {COUNTRY_PRESETS.map(c => {
+              const active = location.toLowerCase().includes(c.value.toLowerCase());
+              return (
+                <button key={c.value} style={chipStyle(active)} onClick={() => {
+                  const city = location.split(',')[0].trim();
+                  setLocation(city ? `${city}, ${c.value}` : c.value);
+                }}>{c.label}</button>
+              );
+            })}
+            <input
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              placeholder="City, Country"
+              style={{ ...inputStyle, flex: '1 1 160px', fontSize: 9 }}
+            />
+          </div>
+
+          <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.1em', marginBottom: 5 }}>FILTERS</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+            <button onClick={() => setNoWebsite(v => !v)} style={chipStyle(noWebsiteOnly)}>{noWebsiteOnly ? '✓' : '○'} No website only</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ ...INTER, fontSize: 8, color: 'oklch(0.7 0.015 70)' }}>Min rating</span>
+              {[0, 3.5, 4.0, 4.5].map(r => (
+                <button key={r} style={chipStyle(minRating === r)} onClick={() => setMinRating(r)}>{r === 0 ? 'OFF' : `${r}★`}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ ...INTER, fontSize: 8, color: 'oklch(0.7 0.015 70)' }}>Max</span>
+              {[5, 10, 20].map(n => (
+                <button key={n} style={chipStyle(scrapeMax === n)} onClick={() => setScrapeMax(n)}>{n}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button onClick={onScrape} disabled={scraping || !location.trim() || !keyword.trim()} style={{
+              ...INTER, fontSize: 9, padding: '7px 18px', cursor: scraping ? 'wait' : 'pointer',
+              background: scraping ? 'oklch(0.78 0.09 65 / 0.06)' : 'oklch(0.78 0.09 65 / 0.15)',
+              border: '1px solid oklch(0.78 0.09 65 / 0.35)',
+              color: scraping ? 'oklch(0.78 0.09 65 / 0.35)' : 'oklch(0.78 0.09 65)',
+              borderRadius: 6, letterSpacing: '0.12em',
+            }}>{scraping ? '◌ SCRAPING...' : '▶ SCRAPE'}</button>
+            <div style={{ ...INTER, fontSize: 8, color: 'oklch(0.7 0.015 70 / 0.6)' }}>
+              {keyword && location ? `"${keyword}" in ${location}` : 'Select niche + location'}
+            </div>
+          </div>
+          {scrapeMsg && (
+            <div style={{ ...INTER, fontSize: 8, color: scrapeMsg.startsWith('Error') ? '#f87171' : '#4ade80', marginTop: 7, letterSpacing: '0.06em' }}>
+              {scrapeMsg}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function AdminPage() {
   const [leads, setLeads]             = useState<Lead[]>([]);
   const [stageCounts, setStageCounts] = useState<StageCounts>({});
   const [stageFilter, setStageFilter] = useState('all');
-  const [minScore]                    = useState(0);
+  const [minScore, setMinScore]       = useState(0);
   const [ready, setReady]             = useState(false);
 
-  // Inject mobile-responsive styles once
   useEffect(() => {
     const s = document.createElement('style');
     s.id = 'admin-mobile-css';
@@ -185,42 +297,43 @@ function AdminPage() {
     return () => { document.getElementById('admin-mobile-css')?.remove(); };
   }, []);
 
-  // Scrape state
-  const [location, setLocation]         = useState('');
-  const [keyword, setKeyword]           = useState('');
-  const [scraping, setScraping]         = useState(false);
-  const [scrapeMsg, setScrapeMsg]       = useState('');
-  const [showScrape, setShowScrape]     = useState(false);
-  const [scrapeMax, setScrapeMax]       = useState(20);
-  const [noWebsiteOnly, setNoWebsite]   = useState(false);
-  const [minRating, setMinRating]       = useState(0);
+  const [location, setLocation]       = useState('');
+  const [keyword, setKeyword]         = useState('');
+  const [scraping, setScraping]       = useState(false);
+  const [scrapeMsg, setScrapeMsg]     = useState('');
+  const [showScrape, setShowScrape]   = useState(false);
+  const [scrapeMax, setScrapeMax]     = useState(20);
+  const [noWebsiteOnly, setNoWebsite] = useState(false);
+  const [minRating, setMinRating]     = useState(0);
 
-  // Lead detail state
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [activities, setActivities]     = useState<Activity[]>([]);
 
-  // Action state
-  const [analyzing, setAnalyzing]           = useState<string | null>(null);
-  const [enriching, setEnriching]           = useState<string | null>(null);
-  const [drafting, setDrafting]             = useState<string | null>(null);
-  const [savingStage, setSavingStage]       = useState(false);
-  const [noteInput, setNoteInput]           = useState('');
-  const [noteSuccess, setNoteSuccess]       = useState(false);
-  const [showDraft, setShowDraft]           = useState(false);
-  const [copyMsg, setCopyMsg]               = useState('');
-  const [draftMsg, setDraftMsg]             = useState<Record<string, string>>({});
+  const [analyzing, setAnalyzing]            = useState<string | null>(null);
+  const [enriching, setEnriching]            = useState<string | null>(null);
+  const [drafting, setDrafting]              = useState<string | null>(null);
+  const [savingStage, setSavingStage]        = useState(false);
+  const [noteInput, setNoteInput]            = useState('');
+  const [noteSuccess, setNoteSuccess]        = useState(false);
+  const [showDraft, setShowDraft]            = useState(false);
+  const [copyMsg, setCopyMsg]                = useState('');
+  const [draftMsg, setDraftMsg]              = useState<Record<string, string>>({});
   const [generatingProposal, setGenProposal] = useState<string | null>(null);
-  const [proposalMsg, setProposalMsg]       = useState<Record<string, string>>({});
-  const [bulkOp, setBulkOp]                 = useState<BulkOp | null>(null);
+  const [proposalMsg, setProposalMsg]        = useState<Record<string, string>>({});
+  const [bulkOp, setBulkOp]                  = useState<BulkOp | null>(null);
+  const [sendingEmail, setSendingEmail]      = useState<string | null>(null);
+  const [sendMsg, setSendMsg]                = useState<Record<string, string>>({});
 
   const loadLeads = useCallback(async () => {
-    const res = await getLeads({ data: { stage: stageFilter !== 'all' ? stageFilter : undefined, minScore } });
-    setLeads(res.leads);
-    setStageCounts(res.stageCounts);
+    try {
+      const res = await getLeads({ data: { stage: stageFilter !== 'all' ? stageFilter : undefined, minScore } });
+      setLeads(res.leads);
+      setStageCounts(res.stageCounts);
+    } catch { /* 401 auto-logouts via call(); other errors are silent */ }
   }, [stageFilter, minScore]);
 
   useEffect(() => {
-    const bail = setTimeout(() => setReady(true), 12000); // never hang longer than 12s
+    const bail = setTimeout(() => setReady(true), 12000);
     runMigrations({ data: undefined })
       .then(() => { clearTimeout(bail); setReady(true); loadLeads(); })
       .catch((err) => { clearTimeout(bail); console.error('DB init failed:', err); setReady(true); });
@@ -242,7 +355,6 @@ function AdminPage() {
   const hotLeads   = leads.filter(l => l.lead_score >= 80).length;
   const avgScore   = totalLeads ? Math.round(leads.reduce((s, l) => s + l.lead_score, 0) / totalLeads) : 0;
   const contacted  = (stageCounts['contacted'] ?? 0) + (stageCounts['replied'] ?? 0) + (stageCounts['proposal'] ?? 0);
-
   const stageOrder = ['all','scraped','analyzed','contacted','replied','meeting_booked','proposal','negotiating','closed','lost'];
 
   async function handleScrape() {
@@ -255,9 +367,7 @@ function AdminPage() {
       setScrapeMsg(`Found ${data.total}${filteredNote} — ${data.created} new, ${data.skipped} already in CRM`);
       if (data.created > 0) setStageFilter('scraped');
       await loadLeads();
-    } catch (e: any) {
-      setScrapeMsg(`Error: ${e.message}`);
-    }
+    } catch (e: any) { setScrapeMsg(`Error: ${e.message}`); }
     setScraping(false);
   }
 
@@ -265,10 +375,7 @@ function AdminPage() {
     setAnalyzing(lead.id);
     try {
       const res = await analyzeLead({ data: { id: lead.id } });
-      if (res.lead) {
-        setLeads(ls => ls.map(l => l.id === lead.id ? res.lead : l));
-        await loadDetail(res.lead);
-      }
+      if (res.lead) { setLeads(ls => ls.map(l => l.id === lead.id ? res.lead : l)); await loadDetail(res.lead); }
     } catch { /* silent */ }
     setAnalyzing(null);
   }
@@ -277,10 +384,7 @@ function AdminPage() {
     setEnriching(lead.id);
     try {
       const res = await enrichLead({ data: { id: lead.id } });
-      if (res.lead) {
-        setLeads(ls => ls.map(l => l.id === lead.id ? res.lead : l));
-        setSelectedLead(res.lead);
-      }
+      if (res.lead) { setLeads(ls => ls.map(l => l.id === lead.id ? res.lead : l)); setSelectedLead(res.lead); }
     } catch { /* silent */ }
     setEnriching(null);
   }
@@ -316,6 +420,20 @@ function AdminPage() {
     } catch { /* silent */ }
   }
 
+  async function handleSendEmail(lead: Lead) {
+    setSendingEmail(lead.id); setSendMsg(m => ({ ...m, [lead.id]: '' }));
+    try {
+      await sendOutreach({ data: { id: lead.id } });
+      setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, outreach_sent: true } : l));
+      setSelectedLead(sel => sel?.id === lead.id ? { ...sel, outreach_sent: true } : sel);
+      await loadDetail(lead);
+      await loadLeads();
+    } catch (e: any) {
+      setSendMsg(m => ({ ...m, [lead.id]: e.message?.slice(0, 100) ?? 'Send failed' }));
+    }
+    setSendingEmail(null);
+  }
+
   async function handleNote(lead: Lead) {
     if (!noteInput.trim()) return;
     try {
@@ -331,7 +449,6 @@ function AdminPage() {
 
   async function handleProposal(lead: Lead) {
     setGenProposal(lead.id); setProposalMsg(m => ({ ...m, [lead.id]: '' }));
-    // Open window synchronously before any await — browsers only allow this from a direct click handler
     const win = window.open('', '_blank');
     if (win) {
       win.document.body.style.cssText = 'background:#050508;color:#e8e8e8;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:14px;letter-spacing:.1em';
@@ -340,15 +457,11 @@ function AdminPage() {
       win.document.body.appendChild(msg);
     }
     try {
-      // Direct fetch — same pattern as CAIDE-OS, avoids wrapper swallowing error details
-      const base = window.location.origin;
+      const base  = window.location.origin;
       const token = sessionStorage.getItem('oas_admin_token') ?? '';
       const res = await fetch(`${base}/api/leads`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         body: JSON.stringify({ action: 'proposal', id: lead.id }),
       });
       const data = await res.json();
@@ -356,13 +469,10 @@ function AdminPage() {
         const msg = data.error ?? `HTTP ${res.status}`;
         if (win) {
           win.document.body.style.cssText = 'background:#1a0505;color:#f87171;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:16px;letter-spacing:.05em;padding:40px;box-sizing:border-box;text-align:center';
-          const errP = win.document.createElement('p');
-          errP.textContent = `Error: ${msg}`;
-          win.document.body.replaceChildren(errP);
+          win.document.body.replaceChildren(Object.assign(win.document.createElement('p'), { textContent: `Error: ${msg}` }));
         }
         setProposalMsg(m => ({ ...m, [lead.id]: msg.slice(0, 200) }));
       } else {
-        // Navigate the already-open window to the stable GET URL — same as CAIDE-OS
         if (win) win.location.href = `${base}/api/leads/${lead.id}/proposal`;
         await loadDetail(lead);
       }
@@ -370,9 +480,7 @@ function AdminPage() {
       const msg = String(e.message).slice(0, 200);
       if (win) {
         win.document.body.style.cssText = 'background:#1a0505;color:#f87171;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-size:16px;letter-spacing:.05em;padding:40px;box-sizing:border-box;text-align:center';
-        const errP = win.document.createElement('p');
-        errP.textContent = `Error: ${msg}`;
-        win.document.body.replaceChildren(errP);
+        win.document.body.replaceChildren(Object.assign(win.document.createElement('p'), { textContent: `Error: ${msg}` }));
       }
       setProposalMsg(m => ({ ...m, [lead.id]: msg }));
     }
@@ -403,107 +511,13 @@ function AdminPage() {
     setBulkOp(null);
   }
 
-  // ── Inner components ────────────────────────────────────────────────────────
-
-  function ScrapePanel() {
-    const chipStyle = (active: boolean): React.CSSProperties => ({
-      ...INTER, fontSize: 8, padding: '3px 8px', cursor: 'pointer',
-      borderRadius: 4, letterSpacing: '0.06em', border: 'none',
-      background: active ? 'oklch(0.78 0.09 65 / 0.2)' : 'oklch(0.95 0.015 75 / 0.04)',
-      color:      active ? 'oklch(0.78 0.09 65)'       : 'oklch(0.7 0.015 70)',
-      outline:    active ? '1px solid oklch(0.78 0.09 65 / 0.5)' : '1px solid oklch(0.95 0.015 75 / 0.1)',
-    });
-    const inputStyle: React.CSSProperties = {
-      ...INTER, fontSize: 9,
-      background: 'oklch(0.95 0.015 75 / 0.08)',
-      border: '1px solid oklch(0.95 0.015 75 / 0.12)',
-      borderRadius: 6,
-      padding: '6px 10px',
-      color: 'oklch(0.95 0.015 75)',
-      outline: 'none',
-    };
-
-    return (
-      <div style={{ ...GLASS, borderRadius: 8, padding: '14px 16px', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showScrape ? 12 : 0 }}>
-          <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.78 0.09 65)', letterSpacing: '0.14em', fontWeight: 700 }}>◈ GOOGLE MAPS SCRAPER</div>
-          <button onClick={() => setShowScrape(s => !s)} style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', background: 'none', border: 'none', cursor: 'pointer' }}>
-            {showScrape ? '▴' : '▾'}
-          </button>
-        </div>
-
-        {showScrape && (
-          <>
-            <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.1em', marginBottom: 5 }}>NICHE</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-              {NICHE_PRESETS.map(n => (
-                <button key={n.value} style={chipStyle(keyword === n.value)} onClick={() => setKeyword(keyword === n.value ? '' : n.value)}>{n.label}</button>
-              ))}
-              <input value={NICHE_PRESETS.some(n => n.value === keyword) ? '' : keyword} onChange={e => setKeyword(e.target.value)}
-                placeholder="Custom niche..." style={{ ...inputStyle, flex: '1 1 120px', fontSize: 8 }} />
-            </div>
-
-            <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.1em', marginBottom: 5 }}>LOCATION</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10, alignItems: 'center' }}>
-              {COUNTRY_PRESETS.map(c => {
-                const active = location.toLowerCase().includes(c.value.toLowerCase());
-                return (
-                  <button key={c.value} style={chipStyle(active)} onClick={() => {
-                    const city = location.split(',')[0].trim();
-                    setLocation(city ? `${city}, ${c.value}` : c.value);
-                  }}>{c.label}</button>
-                );
-              })}
-              <input value={location} onChange={e => setLocation(e.target.value)} placeholder="City, Country"
-                style={{ ...inputStyle, flex: '1 1 160px', fontSize: 9 }} />
-            </div>
-
-            <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.1em', marginBottom: 5 }}>FILTERS</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-              <button onClick={() => setNoWebsite(v => !v)} style={chipStyle(noWebsiteOnly)}>{noWebsiteOnly ? '✓' : '○'} No website only</button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ ...INTER, fontSize: 8, color: 'oklch(0.7 0.015 70)' }}>Min rating</span>
-                {[0, 3.5, 4.0, 4.5].map(r => (
-                  <button key={r} style={chipStyle(minRating === r)} onClick={() => setMinRating(r)}>{r === 0 ? 'OFF' : `${r}★`}</button>
-                ))}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ ...INTER, fontSize: 8, color: 'oklch(0.7 0.015 70)' }}>Max</span>
-                {[5, 10, 20].map(n => (
-                  <button key={n} style={chipStyle(scrapeMax === n)} onClick={() => setScrapeMax(n)}>{n}</button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button onClick={handleScrape} disabled={scraping || !location.trim() || !keyword.trim()} style={{
-                ...INTER, fontSize: 9, padding: '7px 18px', cursor: scraping ? 'wait' : 'pointer',
-                background: scraping ? 'oklch(0.78 0.09 65 / 0.06)' : 'oklch(0.78 0.09 65 / 0.15)',
-                border: '1px solid oklch(0.78 0.09 65 / 0.35)',
-                color: scraping ? 'oklch(0.78 0.09 65 / 0.35)' : 'oklch(0.78 0.09 65)',
-                borderRadius: 6, letterSpacing: '0.12em',
-              }}>{scraping ? '◌ SCRAPING...' : '▶ SCRAPE'}</button>
-              <div style={{ ...INTER, fontSize: 8, color: 'oklch(0.7 0.015 70 / 0.6)' }}>
-                {keyword && location ? `"${keyword}" in ${location}` : 'Select niche + location'}
-              </div>
-            </div>
-            {scrapeMsg && (
-              <div style={{ ...INTER, fontSize: 8, color: scrapeMsg.startsWith('Error') ? '#f87171' : '#4ade80', marginTop: 7, letterSpacing: '0.06em' }}>
-                {scrapeMsg}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    );
-  }
+  // ── Inner components ─────────────────────────────────────────────────────────
 
   function AutomationBar() {
     const funnelData = FUNNEL_STAGES.map(s => ({ key: s, label: STAGES[s]?.label ?? s.toUpperCase(), color: STAGES[s]?.color ?? 'oklch(0.7 0.015 70)', count: stageCounts[s] ?? 0 }));
     const canEnrich  = leads.filter(l => !!l.website && !l.email).length;
     const canAnalyze = leads.filter(l => l.stage === 'scraped').length;
     const canDraft   = leads.filter(l => (l.stage==='analyzed'||l.stage==='scraped') && !l.outreach_draft).length;
-
     return (
       <div style={{ ...GLASS, borderRadius: 6, padding: '10px 14px', marginBottom: 10 }}>
         <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.78 0.09 65 / 0.7)', letterSpacing: '0.16em', fontWeight: 700, marginBottom: 8 }}>◈ AUTOMATION PIPELINE</div>
@@ -519,11 +533,11 @@ function AdminPage() {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-          {[
+          {([
             { action: 'enrich'  as const, label: '✉ ENRICH ALL',  count: canEnrich,  color: '#34d399' },
             { action: 'analyze' as const, label: '◎ ANALYZE ALL', count: canAnalyze, color: 'oklch(0.78 0.09 65)' },
             { action: 'draft'   as const, label: '◇ DRAFT ALL',   count: canDraft,   color: '#a78bfa' },
-          ].map(({ action, label, count, color }) => (
+          ]).map(({ action, label, count, color }) => (
             <button key={action} onClick={() => handleBulk(action)} disabled={count === 0 || !!bulkOp} style={{ ...INTER, fontSize: 7, padding: '4px 10px', cursor: count===0||bulkOp?'not-allowed':'pointer', background: count>0?`${color}18`:'transparent', border:`1px solid ${count>0?`${color}50`:'oklch(0.95 0.015 75 / 0.08)'}`, color: count>0?color:'oklch(0.7 0.015 70)', borderRadius: 4, letterSpacing: '0.08em' }}>
               {label} {count > 0 ? `(${count})` : ''}
             </button>
@@ -548,16 +562,9 @@ function AdminPage() {
     const stage      = STAGES[lead.stage] ?? STAGES['scraped'];
     const isSelected = selectedLead?.id === lead.id;
     return (
-      <div onClick={() => loadDetail(lead)} style={{
-        borderLeft: `3px solid ${isSelected ? 'oklch(0.78 0.09 65)' : 'oklch(0.95 0.015 75 / 0.07)'}`,
-        borderBottom: '1px solid oklch(0.95 0.015 75 / 0.05)',
-        background: isSelected ? 'oklch(0.28 0.015 65 / 0.5)' : 'transparent',
-        padding: '9px 12px 9px 10px', cursor: 'pointer', transition: 'all 0.1s',
-      }}>
+      <div onClick={() => loadDetail(lead)} style={{ borderLeft: `3px solid ${isSelected ? 'oklch(0.78 0.09 65)' : 'oklch(0.95 0.015 75 / 0.07)'}`, borderBottom: '1px solid oklch(0.95 0.015 75 / 0.05)', background: isSelected ? 'oklch(0.28 0.015 65 / 0.5)' : 'transparent', padding: '9px 12px 9px 10px', cursor: 'pointer', transition: 'all 0.1s' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
-          <div style={{ ...INTER, fontSize: 11, fontWeight: 600, color: isSelected ? 'oklch(0.95 0.015 75)' : 'oklch(0.95 0.015 75 / 0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.01em' }}>
-            {lead.name}
-          </div>
+          <div style={{ ...INTER, fontSize: 11, fontWeight: 600, color: isSelected ? 'oklch(0.95 0.015 75)' : 'oklch(0.95 0.015 75 / 0.82)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.01em' }}>{lead.name}</div>
           <div style={{ ...MONO, fontSize: 15, fontWeight: 700, color: scoreColor(lead.lead_score), flexShrink: 0 }}>{lead.lead_score}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
@@ -565,8 +572,8 @@ function AdminPage() {
             {[lead.category?.replace(/_/g, ' '), lead.city].filter(Boolean).join(' · ').toUpperCase()}
           </div>
           <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
-            {lead.email         && <span style={{ fontSize: 9, color: '#34d399' }} title="Email found">✉</span>}
-            {lead.outreach_sent && <span style={{ fontSize: 9, color: '#f0b429' }} title="Outreach sent">▶</span>}
+            {lead.email             && <span style={{ fontSize: 9, color: '#34d399' }} title="Email found">✉</span>}
+            {lead.outreach_sent     && <span style={{ fontSize: 9, color: '#f0b429' }} title="Outreach sent">▶</span>}
             {lead.meeting_booked_at && <span style={{ fontSize: 9, color: '#4ade80' }} title="Call booked">★</span>}
             <span style={{ ...INTER, fontSize: 6, padding: '2px 5px', background: stage.bg, color: stage.color, borderRadius: 3, letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>{stage.label}</span>
           </div>
@@ -574,9 +581,7 @@ function AdminPage() {
         {(lead.needs ?? []).length > 0 && (
           <div style={{ display: 'flex', gap: 3, marginTop: 5, flexWrap: 'wrap' }}>
             {(lead.needs ?? []).slice(0, 4).map(n => (
-              <span key={n} style={{ ...INTER, fontSize: 6, padding: '1px 4px', background: `${NEEDS_COLORS[n] ?? '#888'}14`, color: NEEDS_COLORS[n] ?? '#888', borderRadius: 3, letterSpacing: '0.06em' }}>
-                {NEEDS_LABELS[n] ?? n}
-              </span>
+              <span key={n} style={{ ...INTER, fontSize: 6, padding: '1px 4px', background: `${NEEDS_COLORS[n] ?? '#888'}14`, color: NEEDS_COLORS[n] ?? '#888', borderRadius: 3, letterSpacing: '0.06em' }}>{NEEDS_LABELS[n] ?? n}</span>
             ))}
           </div>
         )}
@@ -585,11 +590,9 @@ function AdminPage() {
   }
 
   function DetailPanel({ lead }: { lead: Lead }) {
-    const stage = STAGES[lead.stage] ?? STAGES['scraped'];
-    void stage;
+    const stage = STAGES[lead.stage] ?? STAGES['scraped']; void stage;
     return (
       <div style={{ height: '100%', overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 18, fontWeight: 400, color: 'oklch(0.95 0.015 75)', letterSpacing: '0.01em', marginBottom: 4 }}>{lead.name}</div>
@@ -599,14 +602,12 @@ function AdminPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ ...MONO, fontSize: 28, fontWeight: 700, color: scoreColor(lead.lead_score) }}>{lead.lead_score}</div>
-            <button onClick={() => handleAnalyze(lead)} disabled={analyzing === lead.id}
-              style={{ ...INTER, fontSize: 9, padding: '5px 13px', cursor: 'pointer', borderRadius: 6, background: 'oklch(0.78 0.09 65 / 0.15)', border: '1px solid oklch(0.78 0.09 65 / 0.35)', color: analyzing === lead.id ? 'oklch(0.78 0.09 65 / 0.35)' : 'oklch(0.78 0.09 65)', letterSpacing: '0.07em' }}>
+            <button onClick={() => handleAnalyze(lead)} disabled={analyzing === lead.id} style={{ ...INTER, fontSize: 9, padding: '5px 13px', cursor: 'pointer', borderRadius: 6, background: 'oklch(0.78 0.09 65 / 0.15)', border: '1px solid oklch(0.78 0.09 65 / 0.35)', color: analyzing === lead.id ? 'oklch(0.78 0.09 65 / 0.35)' : 'oklch(0.78 0.09 65)', letterSpacing: '0.07em' }}>
               {analyzing === lead.id ? '...' : '◎ ANALYZE'}
             </button>
           </div>
         </div>
 
-        {/* Contact */}
         <div style={{ ...GLASS, borderRadius: 8, padding: '12px 16px' }}>
           <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em', marginBottom: 10 }}>CONTACT</div>
           {lead.phone && (
@@ -623,8 +624,7 @@ function AdminPage() {
           ) : lead.website && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
               <span style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', width: 42 }}>EMAIL</span>
-              <button onClick={() => handleEnrich(lead)} disabled={enriching === lead.id}
-                style={{ ...INTER, fontSize: 9, padding: '3px 9px', cursor: 'pointer', borderRadius: 6, background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', color: enriching === lead.id ? 'rgba(52,211,153,0.3)' : 'rgba(52,211,153,0.8)', letterSpacing: '0.07em' }}>
+              <button onClick={() => handleEnrich(lead)} disabled={enriching === lead.id} style={{ ...INTER, fontSize: 9, padding: '3px 9px', cursor: 'pointer', borderRadius: 6, background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', color: enriching === lead.id ? 'rgba(52,211,153,0.3)' : 'rgba(52,211,153,0.8)', letterSpacing: '0.07em' }}>
                 {enriching === lead.id ? '◌ Searching...' : '✉ FIND EMAIL'}
               </button>
             </div>
@@ -648,16 +648,13 @@ function AdminPage() {
           )}
         </div>
 
-        {/* Analysis */}
         {lead.analysis_notes && (
           <div style={{ background: 'oklch(0.78 0.09 65 / 0.06)', border: '1px solid oklch(0.78 0.09 65 / 0.15)', borderRadius: 8, padding: '14px 16px' }}>
             <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.78 0.09 65 / 0.7)', letterSpacing: '0.12em', marginBottom: 9 }}>ANALYSIS</div>
             <div style={{ ...INTER, fontSize: 11, color: 'oklch(0.95 0.015 75 / 0.7)', lineHeight: 1.65 }}>{lead.analysis_notes}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 10 }}>
               {(lead.needs ?? []).map(n => (
-                <span key={n} style={{ ...INTER, fontSize: 9, padding: '3px 8px', background: `${NEEDS_COLORS[n] ?? '#888'}18`, color: NEEDS_COLORS[n] ?? '#888', borderRadius: 4, letterSpacing: '0.06em' }}>
-                  {NEEDS_LABELS[n] ?? n}
-                </span>
+                <span key={n} style={{ ...INTER, fontSize: 9, padding: '3px 8px', background: `${NEEDS_COLORS[n] ?? '#888'}18`, color: NEEDS_COLORS[n] ?? '#888', borderRadius: 4, letterSpacing: '0.06em' }}>{NEEDS_LABELS[n] ?? n}</span>
               ))}
             </div>
             <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
@@ -670,7 +667,6 @@ function AdminPage() {
           </div>
         )}
 
-        {/* Stage selector */}
         <div>
           <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em', marginBottom: 7 }}>PIPELINE STAGE</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -682,14 +678,18 @@ function AdminPage() {
           </div>
         </div>
 
-        {/* Outreach */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em' }}>OUTREACH</div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <button onClick={() => handleDraft(lead)} disabled={drafting === lead.id} style={{ ...INTER, fontSize: 9, padding: '5px 11px', cursor: 'pointer', borderRadius: 6, background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)', color: drafting === lead.id ? 'rgba(167,139,250,0.3)' : 'rgba(167,139,250,0.85)', letterSpacing: '0.06em' }}>
                 {drafting === lead.id ? 'Generating...' : lead.outreach_draft ? '↺ REDRAFT' : '◇ DRAFT EMAIL'}
               </button>
+              {lead.outreach_draft && !lead.outreach_sent && lead.email && (
+                <button onClick={() => handleSendEmail(lead)} disabled={sendingEmail === lead.id} style={{ ...INTER, fontSize: 9, padding: '5px 11px', cursor: 'pointer', borderRadius: 6, background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)', color: sendingEmail === lead.id ? 'rgba(96,165,250,0.3)' : 'rgba(96,165,250,0.9)', letterSpacing: '0.06em' }}>
+                  {sendingEmail === lead.id ? '◌ Sending...' : '✉ SEND EMAIL'}
+                </button>
+              )}
               {lead.outreach_draft && !lead.outreach_sent && (
                 <button onClick={() => handleMarkSent(lead)} style={{ ...INTER, fontSize: 9, padding: '5px 11px', cursor: 'pointer', borderRadius: 6, background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', color: 'rgba(74,222,128,0.85)', letterSpacing: '0.06em' }}>✓ MARK SENT</button>
               )}
@@ -697,6 +697,7 @@ function AdminPage() {
             </div>
           </div>
           {draftMsg[lead.id] && <div style={{ ...INTER, fontSize: 9, color: '#f87171', marginBottom: 6 }}>{draftMsg[lead.id].slice(0, 140)}</div>}
+          {sendMsg[lead.id]  && <div style={{ ...INTER, fontSize: 9, color: '#f87171', marginBottom: 6 }}>Send error: {sendMsg[lead.id]}</div>}
           {lead.outreach_draft ? (
             <>
               <button onClick={() => setShowDraft(d => !d)} style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 6px', letterSpacing: '0.06em' }}>
@@ -732,7 +733,6 @@ function AdminPage() {
           )}
         </div>
 
-        {/* Site Proposal */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em' }}>SITE PROPOSAL</div>
@@ -743,12 +743,9 @@ function AdminPage() {
               {proposalMsg[lead.id] && <div style={{ ...INTER, fontSize: 8, color: '#f87171', maxWidth: 280 }}>{proposalMsg[lead.id].slice(0, 140)}</div>}
             </div>
           </div>
-          <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', fontStyle: 'italic' }}>
-            Generates a personalised website mockup — opens in a new tab.
-          </div>
+          <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', fontStyle: 'italic' }}>Generates a personalised website mockup — opens in a new tab.</div>
         </div>
 
-        {/* Notes */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em' }}>LOG NOTE / CALL / REPLY</div>
@@ -762,7 +759,6 @@ function AdminPage() {
           </div>
         </div>
 
-        {/* Activity Log */}
         <div>
           <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em', marginBottom: 10 }}>
             ACTIVITY TIMELINE {activities.length > 0 && <span style={{ color: 'oklch(0.7 0.015 70 / 0.5)' }}>({activities.length})</span>}
@@ -792,32 +788,29 @@ function AdminPage() {
         </div>
 
         {!lead.analysis_notes && (
-          <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70 / 0.6)', letterSpacing: '0.08em' }}>
-            Click ANALYZE to assess this lead's digital presence.
-          </div>
+          <div style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70 / 0.6)', letterSpacing: '0.08em' }}>Click ANALYZE to assess this lead's digital presence.</div>
         )}
       </div>
     );
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <main style={{ background: 'transparent', height: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, ...INTER }}>
-      {/* Top bar */}
       <div className="admin-topbar" style={{ ...GLASS, padding: '10px 20px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>
           <span style={{ ...INTER, fontSize: 9, letterSpacing: '0.2em', color: 'oklch(0.7 0.015 70)', marginRight: 14, textTransform: 'uppercase' }}>Oasis Studio · Admin</span>
           <span style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, fontWeight: 400, color: 'oklch(0.95 0.015 75)' }}>LEAD ACQUISITION</span>
         </div>
         <div className="admin-stats" style={{ display: 'flex', gap: 24 }}>
-          {[
-            { label: 'TOTAL', value: totalLeads, color: 'oklch(0.95 0.015 75 / 0.7)' },
-            { label: 'HOT', value: hotLeads, color: '#4ade80' },
-            { label: 'AVG', value: avgScore, color: scoreColor(avgScore) },
-            { label: 'CONTACTED', value: contacted, color: '#f0b429' },
-            { label: 'CLOSED', value: stageCounts['closed'] ?? 0, color: '#4ade80' },
-          ].map(({ label, value, color }) => (
+          {([
+            { label: 'TOTAL',     value: totalLeads,                 color: 'oklch(0.95 0.015 75 / 0.7)' },
+            { label: 'HOT',       value: hotLeads,                   color: '#4ade80' },
+            { label: 'AVG',       value: avgScore,                   color: scoreColor(avgScore) },
+            { label: 'CONTACTED', value: contacted,                  color: '#f0b429' },
+            { label: 'CLOSED',    value: stageCounts['closed'] ?? 0, color: '#4ade80' },
+          ]).map(({ label, value, color }) => (
             <div key={label} style={{ textAlign: 'center' }}>
               <div style={{ ...MONO, fontSize: 18, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
               <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em', marginTop: 1 }}>{label}</div>
@@ -826,40 +819,46 @@ function AdminPage() {
         </div>
       </div>
 
-      {/* Body */}
       <div className="admin-body" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left column — single scrollable container (same pattern as CAIDE-OS) */}
         <div className="admin-left" style={{ width: 280, flexShrink: 0, borderRight: '1px solid oklch(0.95 0.015 75 / 0.06)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'oklch(0.22 0.018 60 / 0.3)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
-
-          {/* Single scrollable body — ScrapePanel + AutomationBar + filter + lead cards all scroll together */}
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
-            {/* Scrape + automation */}
             <div style={{ padding: '10px 12px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.06)', flexShrink: 0 }}>
-              {ready && <ScrapePanel />}
+              {ready && <ScrapePanel
+                keyword={keyword}             setKeyword={setKeyword}
+                location={location}           setLocation={setLocation}
+                showScrape={showScrape}       setShowScrape={setShowScrape}
+                scraping={scraping}           scrapeMax={scrapeMax}     setScrapeMax={setScrapeMax}
+                noWebsiteOnly={noWebsiteOnly} setNoWebsite={setNoWebsite}
+                minRating={minRating}         setMinRating={setMinRating}
+                onScrape={handleScrape}       scrapeMsg={scrapeMsg}
+              />}
               {ready && <AutomationBar />}
             </div>
 
-            {/* Stage filter */}
-            <div style={{ padding: '8px 12px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.06)', display: 'flex', gap: 4, overflowX: 'auto', flexShrink: 0 }}>
-              {stageOrder.map(s => {
-                const active = stageFilter === s;
-                const cnt = s === 'all' ? totalLeads : (stageCounts[s] ?? 0);
-                return (
-                  <button key={s} onClick={() => setStageFilter(s)} style={{
-                    ...INTER, fontSize: 7, padding: '3px 7px', cursor: 'pointer', flexShrink: 0,
-                    background: active ? 'oklch(0.78 0.09 65 / 0.2)' : 'transparent',
-                    border: `1px solid ${active ? 'oklch(0.78 0.09 65 / 0.5)' : 'oklch(0.95 0.015 75 / 0.08)'}`,
-                    color: active ? 'oklch(0.78 0.09 65)' : 'oklch(0.7 0.015 70)',
-                    borderRadius: 4, letterSpacing: '0.08em',
-                  }}>
-                    {s === 'all' ? 'ALL' : (STAGES[s]?.label ?? s.toUpperCase())} {cnt > 0 ? `(${cnt})` : ''}
+            {/* Stage filter + score presets */}
+            <div style={{ padding: '8px 12px', borderBottom: '1px solid oklch(0.95 0.015 75 / 0.06)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 4, overflowX: 'auto', marginBottom: 5 }}>
+                {stageOrder.map(s => {
+                  const active = stageFilter === s;
+                  const cnt = s === 'all' ? totalLeads : (stageCounts[s] ?? 0);
+                  return (
+                    <button key={s} onClick={() => setStageFilter(s)} style={{ ...INTER, fontSize: 7, padding: '3px 7px', cursor: 'pointer', flexShrink: 0, background: active ? 'oklch(0.78 0.09 65 / 0.2)' : 'transparent', border: `1px solid ${active ? 'oklch(0.78 0.09 65 / 0.5)' : 'oklch(0.95 0.015 75 / 0.08)'}`, color: active ? 'oklch(0.78 0.09 65)' : 'oklch(0.7 0.015 70)', borderRadius: 4, letterSpacing: '0.08em' }}>
+                      {s === 'all' ? 'ALL' : (STAGES[s]?.label ?? s.toUpperCase())} {cnt > 0 ? `(${cnt})` : ''}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ ...INTER, fontSize: 7, color: 'oklch(0.6 0.015 70)', letterSpacing: '0.06em', flexShrink: 0 }}>SCORE</span>
+                {[0, 30, 50, 90].map(n => (
+                  <button key={n} onClick={() => setMinScore(n)} style={{ ...INTER, fontSize: 7, padding: '2px 7px', cursor: 'pointer', flexShrink: 0, background: minScore === n ? 'oklch(0.78 0.09 65 / 0.18)' : 'transparent', border: `1px solid ${minScore === n ? 'oklch(0.78 0.09 65 / 0.45)' : 'oklch(0.95 0.015 75 / 0.07)'}`, color: minScore === n ? 'oklch(0.78 0.09 65)' : 'oklch(0.6 0.015 70)', borderRadius: 4 }}>
+                    {n === 0 ? 'ALL' : `${n}+`}
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
 
-            {/* Lead cards */}
             <div style={{ padding: '6px 8px' }}>
               {!ready ? (
                 <div style={{ textAlign: 'center', padding: '40px 12px', color: 'oklch(0.7 0.015 70)', fontSize: 9 }}>◌ Initialising database...</div>
@@ -873,7 +872,6 @@ function AdminPage() {
           </div>
         </div>
 
-        {/* Right column */}
         <div className="admin-right" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {selectedLead ? (
             <>

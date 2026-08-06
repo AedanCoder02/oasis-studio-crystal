@@ -423,6 +423,44 @@ async function handleProposal(id) {
   return ok({ ok: true })
 }
 
+async function handleSend(id) {
+  const sql = db()
+  const [lead] = await sql`SELECT * FROM leads WHERE id=${id}`
+  if (!lead) return err('not found', 404)
+  if (!lead.email) return err('no email — run enrich first', 400)
+  if (!lead.outreach_draft) return err('no draft — generate a draft first', 400)
+
+  const smtpHost = process.env.SMTP_HOST ?? 'smtp.hostinger.com'
+  const smtpPort = parseInt(process.env.SMTP_PORT ?? '465')
+  const smtpUser = process.env.SMTP_USER ?? ''
+  const smtpPass = process.env.SMTP_PASS ?? ''
+  if (!smtpUser || !smtpPass) return err('SMTP not configured — set SMTP_USER and SMTP_PASS env vars', 503)
+
+  const lines = lead.outreach_draft.split('\n')
+  const subjLine = lines.find(l => l.startsWith('SUBJECT:'))
+  const subject = subjLine ? subjLine.replace('SUBJECT:', '').trim() : 'Introduction from Oasis Studio'
+  const bodyIdx = lead.outreach_draft.indexOf('---\n')
+  const body = bodyIdx >= 0 ? lead.outreach_draft.slice(bodyIdx + 4) : lead.outreach_draft
+
+  const { default: nodemailer } = await import('nodemailer')
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: { user: smtpUser, pass: smtpPass },
+  })
+  await transporter.sendMail({
+    from: `"Oasis Studio" <${smtpUser}>`,
+    to: lead.email,
+    subject,
+    text: body,
+  })
+
+  await sql`UPDATE leads SET outreach_sent=TRUE,outreach_sent_at=NOW(),last_sent_at=NOW(),stage=CASE WHEN stage='analyzed' THEN 'contacted' ELSE stage END,updated_at=NOW() WHERE id=${id}`
+  await sql`INSERT INTO lead_activities (lead_id,type,content) VALUES (${id},'email_sent',${`Email sent to ${lead.email}`})`
+  return ok({ ok: true })
+}
+
 function isAuthorized(req) {
   const token = process.env.ADMIN_TOKEN
   if (!token) return true // no token set = open (local dev)
@@ -501,6 +539,7 @@ export default async function handler(req, res) {
     if (action === 'update'   && id) return handleUpdate(id, data)
     if (action === 'activity' && (id || data.leadId)) return handleActivity(id ?? data.leadId, data)
     if (action === 'proposal' && id) return handleProposal(id)
+    if (action === 'send'     && id) return handleSend(id)
 return Promise.resolve(err(`unknown action: ${action}`, 400))
   }
 

@@ -15,6 +15,11 @@ async function call(action: string, payload?: Record<string, unknown>) {
     },
     body: JSON.stringify({ action, ...payload }),
   })
+  if (res.status === 401) {
+    try { sessionStorage.removeItem('oas_admin_auth'); sessionStorage.removeItem('oas_admin_token'); } catch {}
+    if (typeof window !== 'undefined') window.location.reload()
+    throw new Error('Session expired')
+  }
   if (!res.ok) {
     const text = await res.text()
     throw new Error(text || `HTTP ${res.status}`)
@@ -51,3 +56,6 @@ export const addActivity = ({ data }: { data: { leadId: string; type: string; co
 
 export const generateProposal = ({ data }: { data: { id: string } }) =>
   call('proposal', { id: data.id }) as Promise<{ html: string }>
+
+export const sendOutreach = ({ data }: { data: { id: string } }) =>
+  call('send', { id: data.id }) as Promise<{ ok: boolean }>
