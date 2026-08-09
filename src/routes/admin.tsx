@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect, useCallback, Fragment } from 'react';
-import { runMigrations, getLeads, getLead, scrapeLeads, analyzeLead, enrichLead, draftOutreach, updateLead, addActivity, sendOutreach } from '../lib/api/leads.functions';
+import { runMigrations, getLeads, getLead, scrapeLeads, analyzeLead, enrichLead, draftOutreach, updateLead, addActivity, sendOutreach, initiateCall } from '../lib/api/leads.functions';
 import type { Lead, Activity, BulkOp, StageCounts } from '../lib/api/leads.types';
 
 export const Route = createFileRoute('/admin')({
@@ -323,6 +323,8 @@ function AdminPage() {
   const [bulkOp, setBulkOp]                  = useState<BulkOp | null>(null);
   const [sendingEmail, setSendingEmail]      = useState<string | null>(null);
   const [sendMsg, setSendMsg]                = useState<Record<string, string>>({});
+  const [callingLead, setCallingLead]        = useState<string | null>(null);
+  const [callMsg, setCallMsg]                = useState<Record<string, string>>({});
 
   const loadLeads = useCallback(async () => {
     try {
@@ -432,6 +434,19 @@ function AdminPage() {
       setSendMsg(m => ({ ...m, [lead.id]: e.message?.slice(0, 100) ?? 'Send failed' }));
     }
     setSendingEmail(null);
+  }
+
+  async function handleCallLead(lead: Lead, callType = 'outreach') {
+    setCallingLead(lead.id); setCallMsg(m => ({ ...m, [lead.id]: '' }));
+    try {
+      const result = await initiateCall({ data: { id: lead.id, callType } });
+      setCallMsg(m => ({ ...m, [lead.id]: `Call initiated (SID: ${result.callSid?.slice(0, 12) ?? 'ok'})` }));
+      await loadDetail(lead);
+      await loadLeads();
+    } catch (e: any) {
+      setCallMsg(m => ({ ...m, [lead.id]: e.message?.slice(0, 100) ?? 'Call failed' }));
+    }
+    setCallingLead(null);
   }
 
   async function handleNote(lead: Lead) {
@@ -694,10 +709,16 @@ function AdminPage() {
                 <button onClick={() => handleMarkSent(lead)} style={{ ...INTER, fontSize: 9, padding: '5px 11px', cursor: 'pointer', borderRadius: 6, background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', color: 'rgba(74,222,128,0.85)', letterSpacing: '0.06em' }}>✓ MARK SENT</button>
               )}
               {lead.outreach_sent && <span style={{ ...INTER, fontSize: 9, color: '#4ade80', letterSpacing: '0.06em' }}>✓ SENT</span>}
+              {lead.phone && (
+                <button onClick={() => handleCallLead(lead, 'outreach')} disabled={callingLead === lead.id} style={{ ...INTER, fontSize: 9, padding: '5px 11px', cursor: 'pointer', borderRadius: 6, background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.3)', color: callingLead === lead.id ? 'rgba(52,211,153,0.3)' : 'rgba(52,211,153,0.9)', letterSpacing: '0.06em' }}>
+                  {callingLead === lead.id ? '◌ Calling...' : '☎ CALL LEAD'}
+                </button>
+              )}
             </div>
           </div>
           {draftMsg[lead.id] && <div style={{ ...INTER, fontSize: 9, color: '#f87171', marginBottom: 6 }}>{draftMsg[lead.id].slice(0, 140)}</div>}
           {sendMsg[lead.id]  && <div style={{ ...INTER, fontSize: 9, color: '#f87171', marginBottom: 6 }}>Send error: {sendMsg[lead.id]}</div>}
+          {callMsg[lead.id]  && <div style={{ ...INTER, fontSize: 9, color: callMsg[lead.id].startsWith('Call initiated') ? '#4ade80' : '#f87171', marginBottom: 6 }}>{callMsg[lead.id]}</div>}
           {lead.outreach_draft ? (
             <>
               <button onClick={() => setShowDraft(d => !d)} style={{ ...INTER, fontSize: 9, color: 'oklch(0.7 0.015 70)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 6px', letterSpacing: '0.06em' }}>

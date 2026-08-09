@@ -59,3 +59,6 @@ export const generateProposal = ({ data }: { data: { id: string } }) =>
 
 export const sendOutreach = ({ data }: { data: { id: string } }) =>
   call('send', { id: data.id }) as Promise<{ ok: boolean }>
+
+export const initiateCall = ({ data }: { data: { id: string; callType?: string } }) =>
+  call('call', { id: data.id, callType: data.callType ?? 'outreach' }) as Promise<{ callSid: string }>

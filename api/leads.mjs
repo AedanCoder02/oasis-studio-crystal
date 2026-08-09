@@ -461,6 +461,42 @@ async function handleSend(id) {
   return ok({ ok: true })
 }
 
+async function handleInitiateCall(id, data) {
+  const sql = db()
+  const [lead] = await sql`SELECT * FROM leads WHERE id=${id}`
+  if (!lead) return err('not found', 404)
+  if (!lead.phone) return err('no phone number on record — add a phone number to this lead first', 400)
+
+  const hermesUrl = process.env.HERMES_URL ?? 'https://hermes-agent-production-bcf8.up.railway.app'
+  const secret    = process.env.HERMES_TUNNEL_SECRET ?? 'hs-oasis-2025-xk9m'
+  const callType  = data?.callType ?? 'outreach'
+
+  const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://oasis-studio-crystal.vercel.app'
+  const proposalUrl = lead.site_proposal ? `${vercelUrl}/api/leads/${id}/proposal` : null
+
+  const res = await fetch(`${hermesUrl}/call/outbound`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-hermes-secret': secret },
+    body: JSON.stringify({
+      leadId: id,
+      callType,
+      context: {
+        leadName: lead.name, businessName: lead.name, phone: lead.phone,
+        category: lead.category, city: lead.city, country: lead.country,
+        website: lead.website, notes: lead.notes, analysis_notes: lead.analysis_notes,
+        lead_score: lead.lead_score, proposalUrl,
+      },
+    }),
+    signal: AbortSignal.timeout(15000),
+  })
+
+  const result = await res.json().catch(() => ({}))
+  if (!res.ok) return err(result.error ?? `Call initiation failed (${res.status})`, 502)
+
+  await sql`INSERT INTO lead_activities (lead_id,type,content) VALUES (${id},'call_initiated',${`Outbound ${callType} call initiated. SID: ${result.callSid ?? 'unknown'}`})`
+  return ok({ callSid: result.callSid })
+}
+
 function isAuthorized(req) {
   const token = process.env.ADMIN_TOKEN
   if (!token) return true // no token set = open (local dev)
@@ -540,6 +576,7 @@ export default async function handler(req, res) {
     if (action === 'activity' && (id || data.leadId)) return handleActivity(id ?? data.leadId, data)
     if (action === 'proposal' && id) return handleProposal(id)
     if (action === 'send'     && id) return handleSend(id)
+    if (action === 'call'     && id) return handleInitiateCall(id, data)
 return Promise.resolve(err(`unknown action: ${action}`, 400))
   }
 
