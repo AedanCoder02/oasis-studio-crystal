@@ -11,10 +11,14 @@ const SESSION_KEY = 'oas_admin_auth';
 const TOKEN_KEY   = 'oas_admin_token';
 
 function AdminGate() {
-  // Require both session flag AND token — old sessions without token force re-login
-  const [authed, setAuthed] = useState(() =>
-    sessionStorage.getItem(SESSION_KEY) === '1' && !!sessionStorage.getItem(TOKEN_KEY)
-  );
+  // Always start false on the server (sessionStorage is browser-only) to avoid
+  // React hydration mismatch #418. useEffect runs only on the client.
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => {
+    if (sessionStorage.getItem(SESSION_KEY) === '1' && !!sessionStorage.getItem(TOKEN_KEY)) {
+      setAuthed(true);
+    }
+  }, []);
   if (!authed) return <LoginScreen onSuccess={() => setAuthed(true)} />;
   return <AdminPage />;
 }
