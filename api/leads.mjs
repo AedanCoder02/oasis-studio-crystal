@@ -497,6 +497,26 @@ async function handleInitiateCall(id, data) {
   return ok({ callSid: result.callSid })
 }
 
+async function handleDirectCall(data) {
+  const phone = (data?.phone ?? '').replace(/\s/g, '')
+  if (!phone) return err('phone number required', 400)
+
+  const hermesUrl = process.env.HERMES_URL ?? 'https://hermes-agent-production-bcf8.up.railway.app'
+  const secret    = process.env.HERMES_TUNNEL_SECRET ?? 'hs-oasis-2025-xk9m'
+  const callType  = data?.callType ?? 'outreach'
+
+  const res = await fetch(`${hermesUrl}/call/outbound`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-hermes-secret': secret },
+    body: JSON.stringify({ callType, context: { phone, leadName: data?.name ?? 'there' } }),
+    signal: AbortSignal.timeout(15000),
+  })
+
+  const result = await res.json().catch(() => ({}))
+  if (!res.ok) return err(result.error ?? `Call failed (${res.status})`, 502)
+  return ok({ callSid: result.callSid })
+}
+
 function isAuthorized(req) {
   const token = process.env.ADMIN_TOKEN
   if (!token) return true // no token set = open (local dev)
@@ -577,6 +597,7 @@ export default async function handler(req, res) {
     if (action === 'proposal' && id) return handleProposal(id)
     if (action === 'send'     && id) return handleSend(id)
     if (action === 'call'     && id) return handleInitiateCall(id, data)
+    if (action === 'call-direct')   return handleDirectCall(data)
 return Promise.resolve(err(`unknown action: ${action}`, 400))
   }
 

@@ -62,3 +62,6 @@ export const sendOutreach = ({ data }: { data: { id: string } }) =>
 
 export const initiateCall = ({ data }: { data: { id: string; callType?: string } }) =>
   call('call', { id: data.id, callType: data.callType ?? 'outreach' }) as Promise<{ callSid: string }>
+
+export const initiateDirectCall = ({ data }: { data: { phone: string; name?: string; callType?: string } }) =>
+  call('call-direct', { phone: data.phone, name: data.name, callType: data.callType ?? 'outreach' }) as Promise<{ callSid: string }>

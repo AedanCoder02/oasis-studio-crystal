@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect, useCallback, Fragment } from 'react';
-import { runMigrations, getLeads, getLead, scrapeLeads, analyzeLead, enrichLead, draftOutreach, updateLead, addActivity, sendOutreach, initiateCall } from '../lib/api/leads.functions';
+import { runMigrations, getLeads, getLead, scrapeLeads, analyzeLead, enrichLead, draftOutreach, updateLead, addActivity, sendOutreach, initiateCall, initiateDirectCall } from '../lib/api/leads.functions';
 import type { Lead, Activity, BulkOp, StageCounts } from '../lib/api/leads.types';
 
 export const Route = createFileRoute('/admin')({
@@ -325,6 +325,9 @@ function AdminPage() {
   const [sendMsg, setSendMsg]                = useState<Record<string, string>>({});
   const [callingLead, setCallingLead]        = useState<string | null>(null);
   const [callMsg, setCallMsg]                = useState<Record<string, string>>({});
+  const [directPhone, setDirectPhone]        = useState('');
+  const [directCalling, setDirectCalling]    = useState(false);
+  const [directCallMsg, setDirectCallMsg]    = useState('');
 
   const loadLeads = useCallback(async () => {
     try {
@@ -447,6 +450,19 @@ function AdminPage() {
       setCallMsg(m => ({ ...m, [lead.id]: e.message?.slice(0, 100) ?? 'Call failed' }));
     }
     setCallingLead(null);
+  }
+
+  async function handleDirectCall() {
+    const phone = directPhone.trim();
+    if (!phone) return;
+    setDirectCalling(true); setDirectCallMsg('');
+    try {
+      const result = await initiateDirectCall({ data: { phone } });
+      setDirectCallMsg(`Call initiated · SID: ${result.callSid?.slice(0, 12) ?? 'ok'}`);
+    } catch (e: any) {
+      setDirectCallMsg(e.message?.slice(0, 120) ?? 'Call failed');
+    }
+    setDirectCalling(false);
   }
 
   async function handleNote(lead: Lead) {
@@ -837,6 +853,29 @@ function AdminPage() {
               <div style={{ ...INTER, fontSize: 7, color: 'oklch(0.7 0.015 70)', letterSpacing: '0.12em', marginTop: 1 }}>{label}</div>
             </div>
           ))}
+        </div>
+
+        {/* Direct call panel */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+          <input
+            value={directPhone}
+            onChange={e => setDirectPhone(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleDirectCall()}
+            placeholder="+1 555 000 0000"
+            style={{ ...MONO, fontSize: 11, padding: '5px 10px', borderRadius: 6, border: '1px solid oklch(0.95 0.015 75 / 0.15)', background: 'oklch(0.18 0.018 60 / 0.6)', color: 'oklch(0.92 0.015 75)', outline: 'none', width: 160 }}
+          />
+          <button
+            onClick={handleDirectCall}
+            disabled={directCalling || !directPhone.trim()}
+            style={{ ...INTER, fontSize: 9, padding: '5px 12px', borderRadius: 6, border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)', color: directCalling ? 'rgba(52,211,153,0.3)' : 'rgba(52,211,153,0.9)', cursor: directCalling ? 'default' : 'pointer', letterSpacing: '0.06em', fontWeight: 700 }}
+          >
+            {directCalling ? '◌ CALLING...' : '☎ CALL'}
+          </button>
+          {directCallMsg && (
+            <span style={{ ...INTER, fontSize: 9, color: directCallMsg.startsWith('Call') ? '#4ade80' : '#f87171' }}>
+              {directCallMsg}
+            </span>
+          )}
         </div>
       </div>
 
