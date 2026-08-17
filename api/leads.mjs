@@ -468,7 +468,7 @@ async function handleInitiateCall(id, data) {
   if (!lead.phone) return err('no phone number on record — add a phone number to this lead first', 400)
 
   const hermesUrl = process.env.HERMES_URL ?? 'https://hermes-agent-production-bcf8.up.railway.app'
-  const secret    = process.env.HERMES_TUNNEL_SECRET ?? 'hs-oasis-2025-xk9m'
+  const secret    = process.env.HERMES_TUNNEL_SECRET ?? 'hs-oasis-DqwtRzV5A0'
   const callType  = data?.callType ?? 'outreach'
 
   const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://oasis-studio-crystal.vercel.app'
@@ -502,7 +502,7 @@ async function handleDirectCall(data) {
   if (!phone) return err('phone number required', 400)
 
   const hermesUrl = process.env.HERMES_URL ?? 'https://hermes-agent-production-bcf8.up.railway.app'
-  const secret    = process.env.HERMES_TUNNEL_SECRET ?? 'hs-oasis-2025-xk9m'
+  const secret    = process.env.HERMES_TUNNEL_SECRET ?? 'hs-oasis-DqwtRzV5A0'
   const callType  = data?.callType ?? 'outreach'
 
   const res = await fetch(`${hermesUrl}/call/outbound`, {
