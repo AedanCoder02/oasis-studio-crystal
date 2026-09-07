@@ -363,12 +363,13 @@ function AdminPage() {
 
   const filteredLeads = searchText.trim()
     ? leads.filter(l => {
-        const q = searchText.toLowerCase();
+        const q = searchText.trim().toLowerCase();
         return (
           (l.country ?? '').toLowerCase().includes(q) ||
           (l.city ?? '').toLowerCase().includes(q) ||
           (l.category ?? '').toLowerCase().includes(q) ||
-          (l.name ?? '').toLowerCase().includes(q)
+          (l.name ?? '').toLowerCase().includes(q) ||
+          (l.search_query ?? '').toLowerCase().includes(q)
         );
       })
     : leads;
