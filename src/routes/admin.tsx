@@ -282,6 +282,7 @@ function AdminPage() {
   const [stageCounts, setStageCounts] = useState<StageCounts>({});
   const [stageFilter, setStageFilter] = useState('all');
   const [minScore, setMinScore]       = useState(0);
+  const [searchText, setSearchText]   = useState('');
   const [ready, setReady]             = useState(false);
 
   useEffect(() => {
@@ -359,6 +360,18 @@ function AdminPage() {
       setActivities(res.activities ?? []);
     } catch { /* silent */ }
   }, []);
+
+  const filteredLeads = searchText.trim()
+    ? leads.filter(l => {
+        const q = searchText.toLowerCase();
+        return (
+          (l.country ?? '').toLowerCase().includes(q) ||
+          (l.city ?? '').toLowerCase().includes(q) ||
+          (l.category ?? '').toLowerCase().includes(q) ||
+          (l.name ?? '').toLowerCase().includes(q)
+        );
+      })
+    : leads;
 
   const totalLeads = leads.length;
   const hotLeads   = leads.filter(l => l.lead_score >= 80).length;
@@ -921,15 +934,23 @@ function AdminPage() {
                   </button>
                 ))}
               </div>
+              <div style={{ marginTop: 5 }}>
+                <input
+                  value={searchText}
+                  onChange={e => setSearchText(e.target.value)}
+                  placeholder="Search country, city, niche…"
+                  style={{ ...INTER, width: '100%', fontSize: 8, padding: '4px 8px', background: 'oklch(0.22 0.012 65 / 0.5)', border: '1px solid oklch(0.95 0.015 75 / 0.1)', color: 'oklch(0.9 0.015 75)', borderRadius: 4, outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
             </div>
 
             <div style={{ padding: '6px 8px' }}>
               {!ready ? (
                 <div style={{ textAlign: 'center', padding: '40px 12px', color: 'oklch(0.7 0.015 70)', fontSize: 9 }}>◌ Initialising database...</div>
-              ) : leads.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 12px', color: 'oklch(0.7 0.015 70)', fontSize: 9 }}>No leads. Scrape Google Maps to start.</div>
+              ) : filteredLeads.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 12px', color: 'oklch(0.7 0.015 70)', fontSize: 9 }}>{searchText ? 'No leads match your search.' : 'No leads. Scrape Google Maps to start.'}</div>
               ) : (
-                leads.map(l => <Fragment key={l.id}><LeadCard lead={l} /></Fragment>)
+                filteredLeads.map(l => <Fragment key={l.id}><LeadCard lead={l} /></Fragment>)
               )}
             </div>
 
