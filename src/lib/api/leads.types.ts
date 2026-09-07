@@ -27,6 +27,7 @@ export interface Lead {
   last_sent_at: string | null;
   meeting_booked_at: string | null;
   stage: string;
+  search_query: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
