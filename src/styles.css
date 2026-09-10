@@ -203,6 +203,46 @@
 }
 
 
+/* Warm brown mesh background — two tones only: base #75604D and darker #4a3b2d */
+.oasis-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: #4a3b2d;
+}
+.oasis-bg .mesh-blob {
+  position: absolute;
+  width: 90vmax;
+  height: 90vmax;
+  border-radius: 50%;
+  filter: blur(160px);
+  opacity: 0.7;
+  will-change: transform;
+}
+.oasis-bg .blob-1 {
+  top: -20%; left: -20%;
+  background: #75604D;
+  animation: blob-shift-1 28s ease-in-out infinite alternate;
+}
+.oasis-bg .blob-2 {
+  bottom: -20%; right: -20%;
+  background: #5c4a38;
+  animation: blob-shift-2 34s ease-in-out infinite alternate;
+}
+
+@keyframes blob-shift-1 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(10vw, 8vh) scale(1.06); }
+  100% { transform: translate(20vw, 16vh) scale(1.1); }
+}
+@keyframes blob-shift-2 {
+  0%   { transform: translate(0, 0) scale(1.05); }
+  50%  { transform: translate(-10vw, -8vh) scale(1.08); }
+  100% { transform: translate(-20vw, -16vh) scale(1.12); }
+}
+
 /* Mobile nav — blur the full header bar, not just the inner pill */
 @media (max-width: 767px) {
   .site-header {
