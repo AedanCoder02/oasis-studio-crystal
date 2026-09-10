@@ -202,55 +202,6 @@
   100% { background-position: 200% 0; }
 }
 
-/* Color-changing mesh blob background — neon, darker, saturated */
-.oasis-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  background: #1a0f1c; /* deep muted plum base */
-}
-.oasis-bg .mesh-blob {
-  position: absolute;
-  width: 95vmax;
-  height: 95vmax;
-  border-radius: 50%;
-  filter: blur(140px) saturate(95%) brightness(85%);
-  opacity: 0.55;
-  mix-blend-mode: normal;
-  will-change: transform, background-color;
-}
-.oasis-bg .blob-1 {
-  top: -25%; left: -25%;
-  background: #15a5c8;
-  animation: blob-shift-1 25s ease-in-out infinite alternate, hue-cycle 60s linear infinite;
-}
-.oasis-bg .blob-2 {
-  bottom: -25%; right: -25%;
-  background: #d4671e;
-  animation: blob-shift-2 30s ease-in-out infinite alternate, hue-cycle 60s linear infinite;
-  animation-delay: 0s, -20s; /* leads blob-1 by one step */
-}
-
-@keyframes blob-shift-1 {
-  0%   { transform: translate(-8vw, -6vh) scale(1); }
-  50%  { transform: translate(6vw, 8vh) scale(1.08); }
-  100% { transform: translate(18vw, 14vh) scale(1.12); }
-}
-@keyframes blob-shift-2 {
-  0%   { transform: translate(8vw, 6vh) scale(1.05); }
-  50%  { transform: translate(-6vw, -8vh) scale(1.1); }
-  100% { transform: translate(-18vw, -14vh) scale(1.15); }
-}
-
-/* Warm cycle: teal → amber → orange → teal */
-@keyframes hue-cycle {
-  0%,   12%  { background-color: #15a5c8; }
-  33%,  45%  { background-color: #e8b13a; }
-  66%,  78%  { background-color: #d4671e; }
-  100%       { background-color: #15a5c8; }
-}
 
 /* Mobile nav — blur the full header bar, not just the inner pill */
 @media (max-width: 767px) {
