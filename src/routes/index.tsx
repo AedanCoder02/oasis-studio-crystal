@@ -73,8 +73,7 @@ function Hero({ go, scrolled }: { go: (id: string) => void; scrolled: boolean })
           <img
             src={oasisLogo}
             alt="Oasis Studio"
-            className={`w-full max-w-[520px] md:max-w-[720px] h-auto transition-opacity duration-700 ${scrolled ? "opacity-0" : "opacity-100"}`}
-            style={{ filter: "invert(1) brightness(1.5)" }}
+            className={`logo-glow w-full max-w-[520px] md:max-w-[720px] h-auto transition-opacity duration-700 ${scrolled ? "opacity-0" : "opacity-100"}`}
           />
         </Reveal>
         <Reveal delay={2} className="mt-8 max-w-xl text-base md:text-xl text-foreground/80 text-pretty">
@@ -797,7 +796,7 @@ function WorkCard({ p, i, visible }: { p: Project; i: number; visible: boolean }
         </div>
         <div className="aspect-[16/10] relative overflow-hidden bg-black/30">
           <img
-            src={p.img} alt={`${p.name} preview`} loading="lazy"
+            src={p.mobileImg} alt={`${p.name} preview`} loading="lazy"
             className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-[1.04]"
             style={{
               filter: visible ? "blur(0px) brightness(1)" : "blur(6px) brightness(0.7)",

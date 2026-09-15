@@ -224,12 +224,12 @@
 .oasis-bg .blob-1 {
   top: -20%; left: -20%;
   background: #75604D;
-  animation: blob-shift-1 28s ease-in-out infinite alternate;
+  animation: blob-shift-1 10s ease-in-out infinite alternate;
 }
 .oasis-bg .blob-2 {
   bottom: -20%; right: -20%;
   background: #5c4a38;
-  animation: blob-shift-2 34s ease-in-out infinite alternate;
+  animation: blob-shift-2 12s ease-in-out infinite alternate;
 }
 
 @keyframes blob-shift-1 {
@@ -334,6 +334,15 @@
 @keyframes bar-scale {
   from { transform: scaleY(0); opacity: 0.4; }
   to   { transform: scaleY(1); opacity: 1; }
+}
+
+/* Logo entrance: fade-in + persistent pulsing glow */
+.logo-glow {
+  animation: logo-pulse 3.5s ease-in-out 1.4s infinite;
+}
+@keyframes logo-pulse {
+  0%, 100% { filter: invert(1) brightness(1.5) drop-shadow(0 0 0px oklch(0.78 0.09 65 / 0)); }
+  50%       { filter: invert(1) brightness(1.6) drop-shadow(0 0 40px oklch(0.78 0.09 65 / 0.4)); }
 }
 
 /* Gradient text utility */
