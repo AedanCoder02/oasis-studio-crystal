@@ -794,7 +794,7 @@ function WorkCard({ p, i, visible }: { p: Project; i: number; visible: boolean }
           ))}
           <span className="ml-2 text-[10px] font-mono text-muted-foreground truncate">{p.url}</span>
         </div>
-        <div className="aspect-[16/10] relative overflow-hidden bg-black/30">
+        <div className="aspect-[3/4] relative overflow-hidden bg-black/30">
           <img
             src={p.mobileImg} alt={`${p.name} preview`} loading="lazy"
             className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-[1.04]"
@@ -828,8 +828,8 @@ function Work() {
     { name: "Ishin Academy", tag: "Education · Framer", url: "ishinacademy.framer.website", href: "https://ishinacademy.framer.website/", img: `${base}assets/5.png`, mobileImg: `${base}assets/mobile/7.jpg` },
     { name: "Cerebrum", tag: "Education · Cloud Computing", url: "cerebrum-eta-weld.vercel.app", href: "https://cerebrum-eta-weld.vercel.app/", img: `${base}assets/8.png`, mobileImg: `${base}assets/mobile/8.jpg` },
   ];
-  const visible = projects.slice(0, 6);
-  const extra = projects.slice(6);
+  const visible = projects.slice(0, 4);
+  const extra = projects.slice(4);
   const [workRef, workVisible] = useScrollVisible(0.06);
   return (
     <section id="work" className="snap-section relative">
@@ -852,7 +852,7 @@ function Work() {
         />
 
         {/* ── DESKTOP grid (hidden on mobile) ── */}
-        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mt-8 md:mt-10">
+        <div className="hidden sm:grid grid-cols-4 gap-3 md:gap-4 mt-8 md:mt-10">
           {visible.map((p, i) => (
             <WorkCard key={p.name} p={p} i={i} visible={workVisible} />
           ))}
