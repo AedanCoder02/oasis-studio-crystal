@@ -338,7 +338,8 @@
 
 /* Logo entrance: fade-in + persistent pulsing glow */
 .logo-glow {
-  animation: logo-pulse 3.5s ease-in-out 1.4s infinite;
+  filter: invert(1) brightness(1.5);
+  animation: logo-pulse 3.5s ease-in-out 1.4s infinite both;
 }
 @keyframes logo-pulse {
   0%, 100% { filter: invert(1) brightness(1.5) drop-shadow(0 0 0px oklch(0.78 0.09 65 / 0)); }

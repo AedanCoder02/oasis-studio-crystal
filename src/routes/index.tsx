@@ -864,7 +864,7 @@ function Work() {
             <div
               className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 overflow-hidden"
               style={{
-                maxHeight: showAll ? `${Math.ceil(extra.length / 3) * 420}px` : "0px",
+                maxHeight: showAll ? `${Math.ceil(extra.length / 3) * 900}px` : "0px",
                 opacity: showAll ? 1 : 0,
                 marginTop: showAll ? "12px" : "0px",
                 transition: "max-height 0.6s cubic-bezier(0.2,0.8,0.2,1), opacity 0.4s ease, margin-top 0.3s ease",
