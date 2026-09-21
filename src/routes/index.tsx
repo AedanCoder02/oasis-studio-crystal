@@ -73,7 +73,8 @@ function Hero({ go, scrolled }: { go: (id: string) => void; scrolled: boolean })
           <img
             src={oasisLogo}
             alt="Oasis Studio"
-            className={`logo-glow w-full max-w-[520px] md:max-w-[720px] h-auto transition-opacity duration-700 ${scrolled ? "opacity-0" : "opacity-100"}`}
+            className={`w-full max-w-[520px] md:max-w-[720px] h-auto transition-opacity duration-700 ${scrolled ? "opacity-0" : "opacity-100"}`}
+            style={{ filter: "invert(1)" }}
           />
         </Reveal>
         <Reveal delay={2} className="mt-8 max-w-xl text-base md:text-xl text-foreground/80 text-pretty">
