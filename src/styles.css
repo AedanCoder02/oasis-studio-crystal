@@ -286,6 +286,11 @@
   scrollbar-width: none;
 }
 .snap-page::-webkit-scrollbar { display: none; }
+/* Footer gets a snap point so mandatory snap doesn't bounce past it */
+.snap-page footer {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
 .snap-section {
   scroll-snap-align: start;
   scroll-snap-stop: always;
