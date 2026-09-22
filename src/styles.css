@@ -203,44 +203,77 @@
 }
 
 
-/* Warm brown mesh background — two tones only: base #75604D and darker #4a3b2d */
+/* Warm brown mesh background — two tones: #75604D (light) + #3d2f22 (dark) */
 .oasis-bg {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background: #4a3b2d;
+  background: #3d2f22;
 }
 .oasis-bg .mesh-blob {
   position: absolute;
-  width: 90vmax;
-  height: 90vmax;
   border-radius: 50%;
-  filter: blur(160px);
-  opacity: 0.7;
   will-change: transform;
 }
+/* Large primary light blob — top-left anchor */
 .oasis-bg .blob-1 {
-  top: -20%; left: -20%;
+  width: 85vmax; height: 85vmax;
+  top: -25%; left: -20%;
   background: #75604D;
-  animation: blob-shift-1 10s ease-in-out infinite alternate;
+  filter: blur(130px);
+  opacity: 0.8;
+  animation: blob-shift-1 9s ease-in-out infinite alternate;
 }
+/* Large primary dark blob — bottom-right anchor */
 .oasis-bg .blob-2 {
-  bottom: -20%; right: -20%;
-  background: #5c4a38;
-  animation: blob-shift-2 12s ease-in-out infinite alternate;
+  width: 90vmax; height: 90vmax;
+  bottom: -30%; right: -25%;
+  background: #4a3b2d;
+  filter: blur(140px);
+  opacity: 0.85;
+  animation: blob-shift-2 11s ease-in-out infinite alternate;
+}
+/* Medium roaming blob — crosses center diagonally */
+.oasis-bg .blob-3 {
+  width: 55vmax; height: 55vmax;
+  top: 15%; right: 5%;
+  background: #6b5540;
+  filter: blur(100px);
+  opacity: 0.65;
+  animation: blob-shift-3 14s ease-in-out infinite alternate;
+}
+/* Small accent blob — bottom-left, lighter, fast */
+.oasis-bg .blob-4 {
+  width: 38vmax; height: 38vmax;
+  bottom: 10%; left: 15%;
+  background: #75604D;
+  filter: blur(80px);
+  opacity: 0.5;
+  animation: blob-shift-4 7s ease-in-out infinite alternate;
 }
 
 @keyframes blob-shift-1 {
-  0%   { transform: translate(0, 0) scale(1); }
-  50%  { transform: translate(10vw, 8vh) scale(1.06); }
-  100% { transform: translate(20vw, 16vh) scale(1.1); }
+  0%   { transform: translate(0,    0)    scale(1)    rotate(0deg); }
+  50%  { transform: translate(14vw, 10vh) scale(1.07) rotate(12deg); }
+  100% { transform: translate(24vw, 18vh) scale(1.12) rotate(-6deg); }
 }
 @keyframes blob-shift-2 {
-  0%   { transform: translate(0, 0) scale(1.05); }
-  50%  { transform: translate(-10vw, -8vh) scale(1.08); }
-  100% { transform: translate(-20vw, -16vh) scale(1.12); }
+  0%   { transform: translate(0,     0)     scale(1.05) rotate(0deg); }
+  50%  { transform: translate(-14vw, -10vh) scale(1.1)  rotate(-14deg); }
+  100% { transform: translate(-26vw, -20vh) scale(1.15) rotate(7deg); }
+}
+@keyframes blob-shift-3 {
+  0%   { transform: translate(0,    0)     scale(1)    rotate(0deg); }
+  33%  { transform: translate(-10vw, 14vh) scale(1.12) rotate(22deg); }
+  66%  { transform: translate(12vw, -10vh) scale(0.88) rotate(-18deg); }
+  100% { transform: translate(-6vw,  16vh) scale(1.06) rotate(10deg); }
+}
+@keyframes blob-shift-4 {
+  0%   { transform: translate(0,   0)    scale(1);    }
+  50%  { transform: translate(10vw, -14vh) scale(1.18); }
+  100% { transform: translate(-10vw, 10vh) scale(0.88); }
 }
 
 /* Mobile nav — blur the full header bar, not just the inner pill */

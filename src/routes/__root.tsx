@@ -120,6 +120,8 @@ function RootComponent() {
       <div className="oasis-bg" aria-hidden="true">
         <div className="mesh-blob blob-1" />
         <div className="mesh-blob blob-2" />
+        <div className="mesh-blob blob-3" />
+        <div className="mesh-blob blob-4" />
       </div>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
