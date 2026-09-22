@@ -782,19 +782,6 @@ function WorkCard({ p, i, visible }: { p: Project; i: number; visible: boolean }
       className="glass hover-lift rounded-2xl overflow-hidden group block"
     >
       <div className="relative border-b border-white/10">
-        <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/10 bg-white/[0.03]">
-          {[0,1,2].map((j) => (
-            <span
-              key={j}
-              className="size-2 rounded-full bg-white/20"
-              style={{
-                transform: visible ? "scale(1)" : "scale(0)",
-                transition: `transform 0.35s cubic-bezier(0.34,1.56,0.64,1) ${delay + 0.12 + j * 0.06}s`,
-              }}
-            />
-          ))}
-          <span className="ml-2 text-[10px] font-mono text-muted-foreground truncate">{p.url}</span>
-        </div>
         <div className="aspect-[3/4] relative overflow-hidden bg-black/30">
           <img
             src={p.mobileImg} alt={`${p.name} preview`} loading="lazy"
