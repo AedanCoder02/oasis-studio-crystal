@@ -238,11 +238,11 @@
 }
 /* The black void — near-black accent in the opposite corner */
 .oasis-bg .blob-2 {
-  width: 55vmax; height: 55vmax;
-  bottom: -10%; right: -10%;
+  width: 28vmax; height: 28vmax;
+  bottom: 5%; right: 5%;
   background: #080503;
-  filter: blur(90px);
-  opacity: 0.9;
+  filter: blur(70px);
+  opacity: 0.85;
   animation: void-drift 20s ease-in-out infinite alternate;
 }
 
