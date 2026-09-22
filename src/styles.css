@@ -236,13 +236,13 @@
   opacity: 0.88;
   animation: spotlight-sweep 16s ease-in-out infinite alternate;
 }
-/* The black void — near-black, anchors the dark corner */
+/* The black void — near-black accent in the opposite corner */
 .oasis-bg .blob-2 {
-  width: 120vmax; height: 120vmax;
-  bottom: -40%; right: -40%;
+  width: 55vmax; height: 55vmax;
+  bottom: -10%; right: -10%;
   background: #080503;
-  filter: blur(55px);
-  opacity: 1;
+  filter: blur(90px);
+  opacity: 0.9;
   animation: void-drift 20s ease-in-out infinite alternate;
 }
 
