@@ -238,14 +238,14 @@
   opacity: 0.88;
   animation: spotlight-sweep 16s ease-in-out infinite alternate;
 }
-/* The black void — near-black accent in the opposite corner */
+/* The black void — anchored corner accent, no drift */
 .oasis-bg .blob-2 {
-  width: 28vmax; height: 28vmax;
-  bottom: 5%; right: 5%;
+  width: 18vmax; height: 18vmax;
+  bottom: -4%; right: -4%;
   background: #080503;
-  filter: blur(70px);
-  opacity: 0.85;
-  animation: void-drift 20s ease-in-out infinite alternate;
+  filter: blur(90px);
+  opacity: 0.6;
+  transform: translateZ(0);
 }
 
 /* Spotlight sweeps upper-left → lower-right diagonally, wide range */
@@ -254,12 +254,6 @@
   30%  { transform: translate(22vw,  14vh)  scale(1.06); }
   60%  { transform: translate(40vw,  28vh)  scale(1.1); }
   100% { transform: translate(30vw,  42vh)  scale(1.04); }
-}
-/* Void drifts slightly — mostly stationary, subtle breathe */
-@keyframes void-drift {
-  0%   { transform: translate(0,    0)    scale(1.05); }
-  40%  { transform: translate(-12vw, -8vh) scale(1.12); }
-  100% { transform: translate(-22vw, -16vh) scale(1.08); }
 }
 
 /* Mobile nav — blur the full header bar, not just the inner pill */
