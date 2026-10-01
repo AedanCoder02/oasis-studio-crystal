@@ -238,20 +238,6 @@
   opacity: 0.88;
   animation: spotlight-sweep 16s ease-in-out infinite alternate;
 }
-/* The black void — corner accent, tight drift stays in corner */
-.oasis-bg .blob-2 {
-  width: 22vmax; height: 22vmax;
-  bottom: -6%; right: -6%;
-  background: #080503;
-  filter: blur(80px);
-  opacity: 0.7;
-  animation: void-drift 14s ease-in-out infinite alternate;
-}
-@keyframes void-drift {
-  0%   { transform: translateZ(0) translate(0,     0)    scale(1); }
-  40%  { transform: translateZ(0) translate(-5vw,  -3vh) scale(1.12); }
-  100% { transform: translateZ(0) translate(-3vw,  -6vh) scale(0.95); }
-}
 
 /* Spotlight sweeps upper-left → lower-right diagonally, wide range */
 @keyframes spotlight-sweep {
