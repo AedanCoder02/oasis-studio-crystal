@@ -225,7 +225,9 @@
 .oasis-bg .mesh-blob {
   position: absolute;
   border-radius: 50%;
-  will-change: transform;
+  /* translateZ(0) promotes to its own compositing layer without will-change,
+     which avoids the Chrome/Windows black-artifact bug on large blurred elements */
+  transform: translateZ(0);
 }
 /* The spotlight — warm brown light source, sweeps diagonally */
 .oasis-bg .blob-1 {
