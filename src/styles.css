@@ -210,7 +210,7 @@
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background: #0f0a06;
+  background: #4A3A2E;
 }
 /* Grain overlay — key to the Skylrk feel */
 .oasis-bg::after {
